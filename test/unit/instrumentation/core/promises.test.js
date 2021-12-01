@@ -10,7 +10,9 @@ const test = tap.test
 
 const helper = require('../../../lib/agent_helper')
 
-test('Promise trace', (t) => {
+const usingAsyncLocal = process.env.NEW_RELIC_FEATURE_FLAG_ASYNC_LOCAL_CONTEXT
+
+test('Promise trace', { skip: usingAsyncLocal }, (t) => {
   t.autoend()
 
   let agent = null
@@ -19,7 +21,8 @@ test('Promise trace', (t) => {
     agent = helper.instrumentMockedAgent({
       feature_flag: {
         promise_segments: true,
-        await_support: false
+        await_support: false,
+        async_local_context: false
       }
     })
   })

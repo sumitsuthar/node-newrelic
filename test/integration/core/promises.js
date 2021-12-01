@@ -7,19 +7,18 @@
 
 const genericTestDir = '../../integration/instrumentation/promises/'
 
-const tap = require('tap')
 const helper = require('../../lib/agent_helper')
 const util = require('util')
 const testPromiseSegments = require(genericTestDir + 'segments')
 const testTransactionState = require(genericTestDir + 'transaction-state')
 
-module.exports = function runTests(flags) {
+module.exports = function runTests(t, flags) {
   const RealPromise = global.Promise
-  tap.afterEach(() => {
+  t.afterEach(() => {
     Promise = global.Promise = RealPromise
   })
 
-  tap.test('transaction state', function (t) {
+  t.test('transaction state', function (t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     t.autoend()
     testTransactionState(t, agent, Promise)
@@ -28,13 +27,13 @@ module.exports = function runTests(flags) {
   // XXX Promise segments in native instrumentation are currently less than ideal
   // XXX in structure. Transaction state is correctly maintained, and all segments
   // XXX are created, but the heirarchy is not correct.
-  tap.test('segments', { skip: true }, function (t) {
+  t.test('segments', { skip: true }, function (t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     t.autoend()
     testPromiseSegments(t, agent, Promise)
   })
 
-  tap.test('then', function testThen(t) {
+  t.test('then', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -67,7 +66,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi then', function testThen(t) {
+  t.test('multi then', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -107,7 +106,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi then async', function testThen(t) {
+  t.test('multi then async', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -154,7 +153,7 @@ module.exports = function runTests(flags) {
   })
 
   const skipChain = !(global.Promise && Promise.prototype.chain)
-  tap.test('chain', { skip: skipChain }, function testChain(t) {
+  t.test('chain', { skip: skipChain }, function testChain(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -187,7 +186,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi chain', { skip: skipChain }, function testThen(t) {
+  t.test('multi chain', { skip: skipChain }, function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -227,7 +226,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi chain async', { skip: skipChain }, function testThen(t) {
+  t.test('multi chain async', { skip: skipChain }, function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -273,7 +272,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('then reject', function testThenReject(t) {
+  t.test('then reject', function testThenReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -306,7 +305,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi then reject', function testThen(t) {
+  t.test('multi then reject', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -346,7 +345,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi then async reject', function testThen(t) {
+  t.test('multi then async reject', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -392,7 +391,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('chain reject', { skip: skipChain }, function testChainReject(t) {
+  t.test('chain reject', { skip: skipChain }, function testChainReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -425,7 +424,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi chain reject', { skip: skipChain }, function testThen(t) {
+  t.test('multi chain reject', { skip: skipChain }, function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -465,7 +464,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi chain async reject', { skip: skipChain }, function testThen(t) {
+  t.test('multi chain async reject', { skip: skipChain }, function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -511,7 +510,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('catch', function testCatch(t) {
+  t.test('catch', function testCatch(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -539,7 +538,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi catch', function testThen(t) {
+  t.test('multi catch', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -574,7 +573,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('multi catch async', function testThen(t) {
+  t.test('multi catch async', function testThen(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -615,7 +614,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.resolve', function testResolve(t) {
+  t.test('Promise.resolve', function testResolve(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -648,7 +647,7 @@ module.exports = function runTests(flags) {
   })
 
   const skipAccept = !(global.Promise && Promise.accept)
-  tap.test('Promise.accept', { skip: skipAccept }, function testAccept(t) {
+  t.test('Promise.accept', { skip: skipAccept }, function testAccept(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -680,7 +679,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.reject', function testReject(t) {
+  t.test('Promise.reject', function testReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -712,7 +711,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.all', function testAll(t) {
+  t.test('Promise.all', function testAll(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -746,7 +745,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.all reject', function testAllReject(t) {
+  t.test('Promise.all reject', function testAllReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -780,7 +779,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.race', function testRace(t) {
+  t.test('Promise.race', function testRace(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -816,7 +815,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.race reject', function testRaceReject(t) {
+  t.test('Promise.race reject', function testRaceReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment
 
@@ -853,7 +852,7 @@ module.exports = function runTests(flags) {
   })
 
   const skipDefer = !(global.Promise && Promise.defer)
-  tap.test('Promise.defer', { skip: skipDefer }, function testDefer(t) {
+  t.test('Promise.defer', { skip: skipDefer }, function testDefer(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
 
     helper.runInTransaction(agent, function inTransaction(transaction) {
@@ -882,7 +881,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('Promise.defer reject', { skip: skipDefer }, function testDeferReject(t) {
+  t.test('Promise.defer reject', { skip: skipDefer }, function testDeferReject(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
 
     helper.runInTransaction(agent, function inTransaction(transaction) {
@@ -913,7 +912,7 @@ module.exports = function runTests(flags) {
 
   // skip this in the hook case, since we don't wrap
   const skipInstanceOf = flags && flags.await_support
-  tap.test('instanceof Promise should not break', { skip: skipInstanceOf }, function (t) {
+  t.test('instanceof Promise should not break', { skip: skipInstanceOf }, function (t) {
     const OriginalPromise = Promise
     t.equal(OriginalPromise.__NR_original, void 0, 'should not be wrapped')
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
@@ -930,7 +929,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('should throw when called without executor', function testNoExecutor(t) {
+  t.test('should throw when called without executor', function testNoExecutor(t) {
     const OriginalPromise = Promise
     let unwrappedError
     let wrappedError
@@ -959,7 +958,7 @@ module.exports = function runTests(flags) {
     t.end()
   })
 
-  tap.test('should work if something wraps promises first', function testWrapSecond(t) {
+  t.test('should work if something wraps promises first', function testWrapSecond(t) {
     const OriginalPromise = Promise
 
     util.inherits(WrappedPromise, Promise)
@@ -987,7 +986,7 @@ module.exports = function runTests(flags) {
     })
   })
 
-  tap.test('should work if something wraps promises after', function testWrapFirst(t) {
+  t.test('should work if something wraps promises after', function testWrapFirst(t) {
     const OriginalPromise = Promise
 
     helper.loadTestAgent(t, { feature_flag: flags })
@@ -1013,7 +1012,7 @@ module.exports = function runTests(flags) {
     t.end()
   })
 
-  tap.test('throw in executor', function testCatch(t) {
+  t.test('throw in executor', function testCatch(t) {
     const agent = helper.loadTestAgent(t, { feature_flag: flags })
     let segment = null
     const exception = {}
