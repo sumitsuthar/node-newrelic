@@ -1,0 +1,19 @@
+{
+  "name": "winston-tests",
+  "version": "0.0.0",
+  "private": true,
+  "tests": [
+    {
+      "engines": {
+        "node": ">=12"
+      },
+      "dependencies": {
+        "winston": ">=3",
+        "@newrelic/winston-enricher": "latest"
+      },
+      "files": [
+        "winston.tap.js"
+      ]
+    }
+  ]
+}
