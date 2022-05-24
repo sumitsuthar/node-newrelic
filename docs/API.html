@@ -1450,7 +1450,7 @@ the correct transaction context when called.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line913">line 913</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line919">line 919</a>
     </li></ul></dd>
     
 
@@ -1497,10 +1497,13 @@ the correct transaction context when called.</p>
 
 
 <div class="description">
-    <p>Get the <script>...</script> header necessary for Browser Monitoring
+    <p>Get the script header necessary for Browser Monitoring
 This script must be manually injected into your templates, as high as possible
 in the header, but <em>after</em> any X-UA-COMPATIBLE HTTP-EQUIV meta tags.
 Otherwise you may hurt IE!</p>
+<p>By default this method will return a script wrapped by <code>&lt;script&gt;</code> tags, but with
+option <code>hasToRemoveScriptWrapper</code> it can send back only the script content
+without the <code>&lt;script&gt;</code> wrapper. Useful for React component based frontend.</p>
 <p>This method must be called <em>during</em> a transaction, and must be called every
 time you want to generate the headers.</p>
 <p>Do <em>not</em> reuse the headers between users, or even between requests.</p>
@@ -1539,7 +1542,7 @@ time you want to generate the headers.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line506">line 506</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line511">line 511</a>
     </li></ul></dd>
     
 
@@ -1621,6 +1624,42 @@ time you want to generate the headers.</p>
 
         <tr>
             
+                <td class="name"><code>options.hasToRemoveScriptWrapper</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><code>boolean</code></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">
+                <p>Used to import agent script without <code>&lt;script&gt;</code> tag wrapper.</p>
+                
+            </td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>options</code></td>
             
 
@@ -1682,7 +1721,7 @@ time you want to generate the headers.</p>
 
 
 <div class="param-desc">
-    <p>The <code>&lt;script&gt;</code> header to be injected.</p>
+    <p>The script content to be injected in <code>&lt;head&gt;</code> or put inside <code>&lt;script&gt;</code> tag (depending on options)</p>
 </div>
 
     
@@ -1907,7 +1946,7 @@ this will be the hostname specified in the connect request as host.</li>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1326">line 1326</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1332">line 1332</a>
     </li></ul></dd>
     
 
@@ -2136,7 +2175,7 @@ defaulting to 1.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1005">line 1005</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1011">line 1011</a>
     </li></ul></dd>
     
 
@@ -2322,7 +2361,7 @@ by. Defaults to 1.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1127">line 1127</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1133">line 1133</a>
     </li></ul></dd>
     
 
@@ -2690,7 +2729,7 @@ this function.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1160">line 1160</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1166">line 1166</a>
     </li></ul></dd>
     
 
@@ -3058,7 +3097,7 @@ this function.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1194">line 1194</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1200">line 1200</a>
     </li></ul></dd>
     
 
@@ -3428,7 +3467,7 @@ newrelic.instrumentLoadedModule('express', express)</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1304">line 1304</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1310">line 1310</a>
     </li></ul></dd>
     
 
@@ -3594,7 +3633,7 @@ into an instrumentation key.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1268">line 1268</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1274">line 1274</a>
     </li></ul></dd>
     
 
@@ -3962,7 +4001,7 @@ this function.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1229">line 1229</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1235">line 1235</a>
     </li></ul></dd>
     
 
@@ -4511,7 +4550,7 @@ that have an attached <code>.message</code> or <code>.stack</code> property.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1036">line 1036</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1042">line 1042</a>
     </li></ul></dd>
     
 
@@ -4684,7 +4723,7 @@ of these keys match the names of the keys used by the platform API.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line949">line 949</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line955">line 955</a>
     </li></ul></dd>
     
 
@@ -5349,7 +5388,7 @@ Relic UI. Will be prefixed with 'Custom/' when sent.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1367">line 1367</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line1373">line 1373</a>
     </li></ul></dd>
     
 
@@ -5726,7 +5765,7 @@ will be ended when <a href="TransactionHandle.html#end"><code>TransactionHandle#
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line844">line 844</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line850">line 850</a>
     </li></ul></dd>
     
 
@@ -5960,7 +5999,7 @@ metric.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line691">line 691</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line697">line 697</a>
     </li></ul></dd>
     
 
@@ -6256,7 +6295,7 @@ will be ended when <a href="TransactionHandle.html#end"><code>TransactionHandle#
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="api.js.html">api.js</a>, <a href="api.js.html#line753">line 753</a>
+        <a href="api.js.html">api.js</a>, <a href="api.js.html#line759">line 759</a>
     </li></ul></dd>
     
 
@@ -6401,7 +6440,7 @@ newrelic.startWebTransaction('/some/url/path', function() {
 <br class="clear">
 
 <footer>
-    Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.10</a> on Mon May 23 2022 20:42:31 GMT+0000 (Coordinated Universal Time) using the Minami theme.
+    Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.10</a> on Tue May 24 2022 23:20:33 GMT+0000 (Coordinated Universal Time) using the Minami theme.
 </footer>
 
 <script>prettyPrint();</script>
