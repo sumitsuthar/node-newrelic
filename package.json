@@ -1,6 +1,6 @@
 {
   "name": "newrelic",
-  "version": "8.13.0",
+  "version": "8.13.1",
   "author": "New Relic Node.js agent team <nodejs@newrelic.com>",
   "license": "Apache-2.0",
   "contributors": [
@@ -180,7 +180,7 @@
     "@newrelic/eslint-config": "^0.0.3",
     "@newrelic/newrelic-oss-cli": "^0.1.2",
     "@newrelic/proxy": "^2.0.0",
-    "@newrelic/test-utilities": "^6.5.3",
+    "@newrelic/test-utilities": "^6.5.4",
     "@octokit/rest": "^18.0.15",
     "@slack/bolt": "^3.7.0",
     "ajv": "^6.12.6",
