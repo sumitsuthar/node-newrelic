@@ -15,8 +15,5 @@
         "promises.tap.js"
       ]
     }
-  ],
-  "dependencies": {
-    "amqplib": "^0.5.2"
-  }
+  ]
 }
