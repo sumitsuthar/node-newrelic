@@ -1,6 +1,6 @@
 {
   "name": "newrelic",
-  "version": "8.17.0",
+  "version": "9.0.0",
   "author": "New Relic Node.js agent team <nodejs@newrelic.com>",
   "license": "Apache-2.0",
   "contributors": [
@@ -108,6 +108,11 @@
       "name": "Diana Thayer",
       "email": "dthayer@newrelic.com",
       "web": "https://newrelic.com"
+    },
+    {
+      "name": "Jordi Gutiérrez Hermoso",
+      "email": "jgutierrezhermoso@newrelic.com",
+      "web": "https://newrelic.com"
     }
   ],
   "description": "New Relic agent",
@@ -121,7 +126,7 @@
   ],
   "homepage": "https://github.com/newrelic/node-newrelic",
   "engines": {
-    "node": ">=12.0.0",
+    "node": ">=14",
     "npm": ">=6.0.0"
   },
   "directories": {
@@ -129,11 +134,10 @@
   },
   "scripts": {
     "bench": "node ./bin/run-bench.js",
-    "ca-gen": "./bin/update-ca-bundle.sh",
     "docker-env": "./bin/docker-env-vars.sh",
     "docs": "npm ci && jsdoc -c ./jsdoc-conf.json --private -r .",
     "integration": "npm run prepare-test && npm run sub-install && time tap test/integration/**/**/*.tap.js --timeout=180 --no-coverage --reporter classic",
-    "prepare-test": "npm run ca-gen && npm run ssl && npm run docker-env",
+    "prepare-test": "npm run ssl && npm run docker-env",
     "lint": "eslint ./*.js lib test bin examples",
     "lint:fix": "eslint --fix, ./*.js lib test bin examples",
     "public-docs": "jsdoc -c ./jsdoc-conf.json --tutorials examples/shim api.js lib/shim/ lib/transaction/handle.js && cp examples/shim/*.png out/",
@@ -161,9 +165,9 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.5.5",
     "@grpc/proto-loader": "^0.6.13",
-    "@newrelic/aws-sdk": "^4.1.1",
-    "@newrelic/koa": "^6.1.1",
-    "@newrelic/superagent": "^5.1.0",
+    "@newrelic/aws-sdk": "^5.0.0",
+    "@newrelic/koa": "^7.0.0",
+    "@newrelic/superagent": "^6.0.0",
     "@tyriar/fibonacci-heap": "^2.0.7",
     "async": "^3.2.3",
     "concat-stream": "^2.0.0",
@@ -174,13 +178,13 @@
     "winston-transport": "^4.5.0"
   },
   "optionalDependencies": {
-    "@newrelic/native-metrics": "^8.0.0"
+    "@newrelic/native-metrics": "^9.0.0"
   },
   "devDependencies": {
     "@newrelic/eslint-config": "^0.0.3",
     "@newrelic/newrelic-oss-cli": "^0.1.2",
     "@newrelic/proxy": "^2.0.0",
-    "@newrelic/test-utilities": "^6.5.5",
+    "@newrelic/test-utilities": "^7.0.0",
     "@octokit/rest": "^18.0.15",
     "@slack/bolt": "^3.7.0",
     "ajv": "^6.12.6",
