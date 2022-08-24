@@ -88,6 +88,15 @@ tap.test('serialize', (t) => {
     })
   })
 
+  t.test('should be able to handle a bigint', (t) => {
+    const obj = { big: BigInt('1729') }
+    method.serialize(obj, (err, encoded) => {
+      t.error(err)
+      t.equal(encoded, '{"big":"1729"}')
+      t.end()
+    })
+  })
+
   t.test('should catch serialization errors', (t) => {
     method.serialize(
       {
@@ -196,8 +205,8 @@ tap.test('when calling a method on the collector', (t) => {
     const method = new RemoteMethod('test', BARE_AGENT, { host: 'localhost' })
     method._shouldCompress = () => true
     method._safeRequest = (options) => {
-      t.equal(options.body.readUInt8(0), 120)
-      t.equal(options.body.length, 14)
+      t.equal(options.body.readUInt8(0), 31)
+      t.equal(options.body.length, 26)
 
       t.end()
     }
@@ -333,7 +342,7 @@ tap.test('when posting to collector', (t) => {
       method._post('[]', {}, (error) => {
         t.error(error)
         t.ok(sendMetrics.isDone())
-        t.end
+        t.end()
       })
     })
 
@@ -351,7 +360,24 @@ tap.test('when posting to collector', (t) => {
       })
     })
 
-    t.test('should default to deflated compression', (t) => {
+    t.test('should default to gzip compression', (t) => {
+      const sendGzippedMetrics = nock(URL)
+        .post(generate('metric_data', RUN_ID))
+        .matchHeader('Content-Encoding', 'gzip')
+        .reply(200, { return_value: [] })
+
+      method._shouldCompress = () => true
+      method._post('[]', {}, (error) => {
+        t.error(error)
+
+        t.ok(sendGzippedMetrics.isDone())
+
+        t.end()
+      })
+    })
+
+    t.test('should use deflate compression when requested', (t) => {
+      method._agent.config.compressed_content_encoding = 'deflate'
       const sendDeflatedMetrics = nock(URL)
         .post(generate('metric_data', RUN_ID))
         .matchHeader('Content-Encoding', 'deflate')
@@ -597,7 +623,7 @@ tap.test('when generating headers for a compressed request', (t) => {
   })
 
   t.test('should use the content type from the parameter', (t) => {
-    t.equal(headers['CONTENT-ENCODING'], 'deflate')
+    t.equal(headers['CONTENT-ENCODING'], 'gzip')
     t.end()
   })
 
