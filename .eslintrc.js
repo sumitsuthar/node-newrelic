@@ -15,6 +15,18 @@ module.exports = {
   ignorePatterns: ['test/versioned-external'],
   overrides: [
     {
+      files: ['**/*.mjs'],
+      parserOptions: {
+        sourceType: 'module',
+        ecmaVersion: 2022
+      },
+      rules: {
+        // TODO: remove this when we decide on how to address
+        // here: https://issues.newrelic.com/browse/NEWRELIC-3321
+        'node/no-unsupported-features/es-syntax': 'off'
+      }
+    },
+    {
       files: ['newrelic.js'],
       rules: {
         'header/header': ['off']
