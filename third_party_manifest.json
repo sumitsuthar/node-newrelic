@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "Tue Dec 20 2022 12:00:46 GMT-0500 (Eastern Standard Time)",
+  "lastUpdated": "Mon Feb 06 2023 16:15:11 GMT-0500 (Eastern Standard Time)",
   "projectName": "New Relic Node Agent",
   "projectUrl": "https://github.com/newrelic/node-newrelic",
   "includeOptDeps": true,
@@ -134,6 +134,19 @@
       "publisher": "Nathan Rajlich",
       "email": "nathan@tootallnate.net",
       "url": "http://n8.io/"
+    },
+    "json-bigint@1.0.0": {
+      "name": "json-bigint",
+      "version": "1.0.0",
+      "range": "^1.0.0",
+      "licenses": "MIT",
+      "repoUrl": "https://github.com/sidorares/json-bigint",
+      "versionedRepoUrl": "https://github.com/sidorares/json-bigint/tree/v1.0.0",
+      "licenseFile": "node_modules/json-bigint/LICENSE",
+      "licenseUrl": "https://github.com/sidorares/json-bigint/blob/v1.0.0/LICENSE",
+      "licenseTextSource": "file",
+      "publisher": "Andrey Sidorov",
+      "email": "sidorares@yandex.ru"
     },
     "json-stringify-safe@5.0.1": {
       "name": "json-stringify-safe",
@@ -311,6 +324,18 @@
       "publisher": "Jake Luer",
       "email": "jake@alogicalparadox.com"
     },
+    "clean-jsdoc-theme@4.2.4": {
+      "name": "clean-jsdoc-theme",
+      "version": "4.2.4",
+      "range": "^4.2.4",
+      "licenses": "MIT",
+      "repoUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme",
+      "versionedRepoUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/tree/v4.2.4",
+      "licenseFile": "node_modules/clean-jsdoc-theme/LICENSE",
+      "licenseUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/blob/v4.2.4/LICENSE",
+      "licenseTextSource": "file",
+      "publisher": "Ank"
+    },
     "commander@7.2.0": {
       "name": "commander",
       "version": "7.2.0",
@@ -474,15 +499,15 @@
       "publisher": "Typicode",
       "email": "typicode@gmail.com"
     },
-    "jsdoc@3.6.11": {
+    "jsdoc@4.0.0": {
       "name": "jsdoc",
-      "version": "3.6.11",
-      "range": "^3.6.3",
+      "version": "4.0.0",
+      "range": "^4.0.0",
       "licenses": "Apache-2.0",
       "repoUrl": "https://github.com/jsdoc/jsdoc",
-      "versionedRepoUrl": "https://github.com/jsdoc/jsdoc/tree/v3.6.11",
+      "versionedRepoUrl": "https://github.com/jsdoc/jsdoc/tree/v4.0.0",
       "licenseFile": "node_modules/jsdoc/LICENSE.md",
-      "licenseUrl": "https://github.com/jsdoc/jsdoc/blob/v3.6.11/LICENSE.md",
+      "licenseUrl": "https://github.com/jsdoc/jsdoc/blob/v4.0.0/LICENSE.md",
       "licenseTextSource": "file",
       "publisher": "Michael Mathews",
       "email": "micmath@gmail.com"
@@ -525,19 +550,6 @@
       "licenseUrl": "https://github.com/3rd-Eden/node-memcached/blob/v2.2.2/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Arnout Kazemier"
-    },
-    "minami@1.2.3": {
-      "name": "minami",
-      "version": "1.2.3",
-      "range": "^1.2.3",
-      "licenses": "Apache-2.0",
-      "repoUrl": "https://github.com/Nijikokun/minami",
-      "versionedRepoUrl": "https://github.com/Nijikokun/minami/tree/v1.2.3",
-      "licenseFile": "node_modules/minami/LICENSE",
-      "licenseUrl": "https://github.com/Nijikokun/minami/blob/v1.2.3/LICENSE",
-      "licenseTextSource": "file",
-      "publisher": "Nijiko Yonskai",
-      "email": "nijikokun@gmail.com"
     },
     "nock@11.8.0": {
       "name": "nock",
@@ -642,15 +654,15 @@
       "licenseTextSource": "file",
       "publisher": "Christian Johansen"
     },
-    "tap@16.3.0": {
+    "tap@16.3.4": {
       "name": "tap",
-      "version": "16.3.0",
-      "range": "^16.0.1",
+      "version": "16.3.4",
+      "range": "^16.3.4",
       "licenses": "ISC",
       "repoUrl": "https://github.com/tapjs/node-tap",
-      "versionedRepoUrl": "https://github.com/tapjs/node-tap/tree/v16.3.0",
+      "versionedRepoUrl": "https://github.com/tapjs/node-tap/tree/v16.3.4",
       "licenseFile": "node_modules/tap/LICENSE",
-      "licenseUrl": "https://github.com/tapjs/node-tap/blob/v16.3.0/LICENSE",
+      "licenseUrl": "https://github.com/tapjs/node-tap/blob/v16.3.4/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Isaac Z. Schlueter",
       "email": "i@izs.me",

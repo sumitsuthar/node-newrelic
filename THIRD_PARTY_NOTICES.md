@@ -22,6 +22,7 @@ code, the source code can be found at [https://github.com/newrelic/node-newrelic
 * [@tyriar/fibonacci-heap](#tyriarfibonacci-heap)
 * [concat-stream](#concat-stream)
 * [https-proxy-agent](#https-proxy-agent)
+* [json-bigint](#json-bigint)
 * [json-stringify-safe](#json-stringify-safe)
 * [readable-stream](#readable-stream)
 * [semver](#semver)
@@ -39,6 +40,7 @@ code, the source code can be found at [https://github.com/newrelic/node-newrelic
 * [async](#async)
 * [c8](#c8)
 * [chai](#chai)
+* [clean-jsdoc-theme](#clean-jsdoc-theme)
 * [commander](#commander)
 * [eslint-config-prettier](#eslint-config-prettier)
 * [eslint-plugin-disable](#eslint-plugin-disable)
@@ -56,7 +58,6 @@ code, the source code can be found at [https://github.com/newrelic/node-newrelic
 * [lint-staged](#lint-staged)
 * [lockfile-lint](#lockfile-lint)
 * [memcached](#memcached)
-* [minami](#minami)
 * [nock](#nock)
 * [prettier](#prettier)
 * [proxyquire](#proxyquire)
@@ -1202,6 +1203,34 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+### json-bigint
+
+This product includes source derived from [json-bigint](https://github.com/sidorares/json-bigint) ([v1.0.0](https://github.com/sidorares/json-bigint/tree/v1.0.0)), distributed under the [MIT License](https://github.com/sidorares/json-bigint/blob/v1.0.0/LICENSE):
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2013 Andrey Sidorov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+```
+
 ### json-stringify-safe
 
 This product includes source derived from [json-stringify-safe](https://github.com/isaacs/json-stringify-safe) ([v5.0.1](https://github.com/isaacs/json-stringify-safe/tree/v5.0.1)), distributed under the [ISC License](https://github.com/isaacs/json-stringify-safe/blob/v5.0.1/LICENSE):
@@ -2146,6 +2175,35 @@ SOFTWARE.
 
 ```
 
+### clean-jsdoc-theme
+
+This product includes source derived from [clean-jsdoc-theme](https://github.com/ankitskvmdam/clean-jsdoc-theme) ([v4.2.4](https://github.com/ankitskvmdam/clean-jsdoc-theme/tree/v4.2.4)), distributed under the [MIT License](https://github.com/ankitskvmdam/clean-jsdoc-theme/blob/v4.2.4/LICENSE):
+
+```
+MIT License
+
+Copyright (c) 2019-2022 Ankit Kumar (अंकित कुमार)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
 ### commander
 
 This product includes source derived from [commander](https://github.com/tj/commander.js) ([v7.2.0](https://github.com/tj/commander.js/tree/v7.2.0)), distributed under the [MIT License](https://github.com/tj/commander.js/blob/v7.2.0/LICENSE):
@@ -2651,7 +2709,7 @@ SOFTWARE.
 
 ### jsdoc
 
-This product includes source derived from [jsdoc](https://github.com/jsdoc/jsdoc) ([v3.6.11](https://github.com/jsdoc/jsdoc/tree/v3.6.11)), distributed under the [Apache-2.0 License](https://github.com/jsdoc/jsdoc/blob/v3.6.11/LICENSE.md):
+This product includes source derived from [jsdoc](https://github.com/jsdoc/jsdoc) ([v4.0.0](https://github.com/jsdoc/jsdoc/tree/v4.0.0)), distributed under the [Apache-2.0 License](https://github.com/jsdoc/jsdoc/blob/v4.0.0/LICENSE.md):
 
 ```
 # License
@@ -3010,75 +3068,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
-
-### minami
-
-This product includes source derived from [minami](https://github.com/Nijikokun/minami) ([v1.2.3](https://github.com/Nijikokun/minami/tree/v1.2.3)), distributed under the [Apache-2.0 License](https://github.com/Nijikokun/minami/blob/v1.2.3/LICENSE):
-
-```
-# License
-
-Minami is free software, licensed under the Apache License, Version 2.0 (the
-"License"). Commercial and non-commercial use are permitted in compliance with
-the License.
-
-Copyright (c) 2014-2015 Nijiko Yonskai <nijikokun@gmail.com> and the
-[contributors to Minami](https://github.com/Nijikokun/minami/graphs/contributors).
-All rights reserved.
-
-You may obtain a copy of the License at:
-http://www.apache.org/licenses/LICENSE-2.0
-
-In addition, a copy of the License is included with this distribution.
-
-As stated in Section 7, "Disclaimer of Warranty," of the License:
-
-> Licensor provides the Work (and each Contributor provides its Contributions)
-> on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-> express or implied, including, without limitation, any warranties or
-> conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-> PARTICULAR PURPOSE. You are solely responsible for determining the
-> appropriateness of using or redistributing the Work and assume any risks
-> associated with Your exercise of permissions under this License.
-
-The source code for JSDoc 3 is available at:
-https://github.com/Nijikokun/minami
-
-# Third-Party Software
-
-Minami includes or depends upon the following third-party software, either in
-whole or in part. Each third-party software package is provided under its own
-license.
-
-## JSDoc 3
-
-JSDoc 3 is free software, licensed under the Apache License, Version 2.0 (the
-"License"). Commercial and non-commercial use are permitted in compliance with
-the License.
-
-Copyright (c) 2011-2015 Michael Mathews <micmath@gmail.com> and the
-[contributors to JSDoc](https://github.com/jsdoc3/jsdoc/graphs/contributors).
-All rights reserved.
-
-You may obtain a copy of the License at:
-http://www.apache.org/licenses/LICENSE-2.0
-
-In addition, a copy of the License is included with this distribution.
-
-As stated in Section 7, "Disclaimer of Warranty," of the License:
-
-> Licensor provides the Work (and each Contributor provides its Contributions)
-> on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-> express or implied, including, without limitation, any warranties or
-> conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-> PARTICULAR PURPOSE. You are solely responsible for determining the
-> appropriateness of using or redistributing the Work and assume any risks
-> associated with Your exercise of permissions under this License.
-
-The source code for JSDoc 3 is available at:
-https://github.com/jsdoc3/jsdoc
-
 ```
 
 ### nock
@@ -9326,12 +9315,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### tap
 
-This product includes source derived from [tap](https://github.com/tapjs/node-tap) ([v16.3.0](https://github.com/tapjs/node-tap/tree/v16.3.0)), distributed under the [ISC License](https://github.com/tapjs/node-tap/blob/v16.3.0/LICENSE):
+This product includes source derived from [tap](https://github.com/tapjs/node-tap) ([v16.3.4](https://github.com/tapjs/node-tap/tree/v16.3.4)), distributed under the [ISC License](https://github.com/tapjs/node-tap/blob/v16.3.4/LICENSE):
 
 ```
 The ISC License
 
-Copyright (c) 2011-2022 Isaac Z. Schlueter and Contributors
+Copyright (c) 2011-2023 Isaac Z. Schlueter and Contributors
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above

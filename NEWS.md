@@ -1,3 +1,49 @@
+### v9.9.0 (2023-02-06)
+* Added support for url obfuscation using regex (Thanks for your contribution @matewilk)
+  * For Distributed Tracing, this means that:
+     * Incoming and outgoing requests' `path` will be obfuscated
+     * Transaction's `request.url` attribute will be obfuscated
+     * Span's `http.uri` path will be obfuscated
+  * For transactions, this means that:
+    * Transaction trace details `url` will be obfuscated
+  * With the following example configuration, url obfuscation will turn `/api/v1/users/12345456/edit` to `/api/v1/users/**/edit`.
+    ```js
+    url_obfuscation: {
+      enabled: true,
+      regex: {
+        pattern: /(\/api\/v1\/users\/)([\d]+)(\/.*$)/,
+        flags: "i",
+        replacement: '$1**$3'
+      }
+    }
+    ```
+  * You can also use environment variables to configure url obfuscation:
+    ```yml
+    NEW_RELIC_URL_OBFUSCATION_ENABLED: "true",
+    NEW_RELIC_URL_OBFUSCATION_REGEX_PATTERN: '/(\/api\/v1\/users\/)([\d]+)(\/.*$)/',
+    NEW_RELIC_URL_OBFUSCATION_REGEX_FLAGS: 'i',
+    NEW_RELIC_URL_OBFUSCATION_REGEX_REPLACEMENT: '$1**$3'
+    ```
+
+* Add a new tracking type of instrumentation.  This will be responsible for logging `Supportability/Features/Instrumentation/OnResolved/<pkg>` and `Supportability/Features/Instrumentation/OnResolved/<pkg>/Version/<version>` metrics when packages are required.
+
+### v9.8.1 (2023-01-25)
+
+* Changed GCP metadata parsing to use `json-bigint` to avoid loss of precision from numerical instance ID.
+
+* Instrumented `winston.loggers.add` so it works like `winston.createLogger`.
+
+### v9.8.0 (2023-01-17)
+
+* Updated `getBrowserTimingHeader` to allow Browser Agent to be generated even when not in a Transaction by adding `allowTransactionlessInjection` to function options. `allowTransactionlessInjection` is a boolean option, and when set to `true`, will allow injection of the Browser Agent when not in a transaction. This is intended to be used in frameworks that build Static Site Generation(SSG). Note that if you are using this option, you may need to wait until the Node agent has established a connection before calling `getBrowserTimingHeader`. To wait until the agent is connected, you can add the following check to your code: 
+```js
+if (!newrelic.agent.collector.isConnected()) {
+  await new Promise((resolve) => {
+    newrelic.agent.on('connected', resolve)
+  })
+}
+```
+
 ### v9.7.5 (2023-01-03)
 
 * Added a check to the code level metrics utility to ensure filePath was set before adding the `code.*` attributes.
@@ -3157,7 +3203,7 @@ Special thanks to Ryan Copley (@RyanCopley) for the contribution.
     used for instrumenting web frameworks like `restify` or `express`.
 
   Documentation and tutorials for the new API can be found on our GitHub
-  documentation page: http://newrelic.github.io/node-newrelic/docs/
+  documentation page: http://newrelic.github.io/node-newrelic/
 
 * Rewrote built-in instrumentation using the new `Shim` classes.
 
@@ -3246,7 +3292,7 @@ Special thanks to Ryan Copley (@RyanCopley) for the contribution.
   meaning every instrumentation will create Middleware metrics for your server.
 
   Tutorials on using the new instrumentation shim can be found on our API docs:
-  http://newrelic.github.io/node-newrelic/docs/.
+  http://newrelic.github.io/node-newrelic/.
 
 * Removed `express_segments` feature flag.
 
