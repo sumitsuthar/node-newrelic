@@ -1,6 +1,6 @@
 {
   "name": "newrelic",
-  "version": "9.9.0",
+  "version": "9.10.0",
   "author": "New Relic Node.js agent team <nodejs@newrelic.com>",
   "license": "Apache-2.0",
   "contributors": [
@@ -179,8 +179,8 @@
     "newrelic-naming-rules": "./bin/test-naming-rules.js"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.7.3",
-    "@grpc/proto-loader": "^0.7.3",
+    "@grpc/grpc-js": "^1.8.4",
+    "@grpc/proto-loader": "^0.7.4",
     "@newrelic/aws-sdk": "^5.0.2",
     "@newrelic/koa": "^7.1.1",
     "@newrelic/superagent": "^6.0.0",
@@ -198,7 +198,7 @@
     "@newrelic/native-metrics": "^9.0.0"
   },
   "devDependencies": {
-    "@newrelic/eslint-config": "^0.2.0",
+    "@newrelic/eslint-config": "^0.3.0",
     "@newrelic/newrelic-oss-cli": "^0.1.2",
     "@newrelic/proxy": "^2.0.0",
     "@newrelic/test-utilities": "^7.2.0",
@@ -217,7 +217,7 @@
     "eslint-plugin-jsdoc": "^39.3.6",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.4.0",
-    "eslint-plugin-sonarjs": "^0.15.0",
+    "eslint-plugin-sonarjs": "^0.18.0",
     "express": "*",
     "glob": "^7.1.2",
     "got": "^11.8.5",
