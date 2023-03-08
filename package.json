@@ -1,6 +1,6 @@
 {
   "name": "newrelic",
-  "version": "9.10.2",
+  "version": "9.11.0",
   "author": "New Relic Node.js agent team <nodejs@newrelic.com>",
   "license": "Apache-2.0",
   "contributors": [
@@ -179,8 +179,8 @@
     "newrelic-naming-rules": "./bin/test-naming-rules.js"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.8.7",
-    "@grpc/proto-loader": "^0.7.4",
+    "@grpc/grpc-js": "^1.8.8",
+    "@grpc/proto-loader": "^0.7.5",
     "@newrelic/aws-sdk": "^5.0.2",
     "@newrelic/koa": "^7.1.1",
     "@newrelic/superagent": "^6.0.0",
