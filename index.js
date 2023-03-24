@@ -114,7 +114,7 @@ function initialize() {
     })
 
     if (agent.config.security.agent.enabled) {
-      require('nr-node-security-agent').start(require.cache[symbols.cache])
+      require('nr-node-security-agent').start(require.cache.__NR_cache)
     }
   }
 }
