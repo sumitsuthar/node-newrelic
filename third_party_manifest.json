@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "Thu Mar 23 2023 19:56:10 GMT-0400 (Eastern Daylight Time)",
+  "lastUpdated": "Wed Apr 12 2023 15:39:08 GMT-0400 (Eastern Daylight Time)",
   "projectName": "New Relic Node Agent",
   "projectUrl": "https://github.com/newrelic/node-newrelic",
   "includeOptDeps": true,
@@ -32,39 +32,39 @@
   },
   "includeDev": true,
   "dependencies": {
-    "@grpc/grpc-js@1.8.12": {
+    "@grpc/grpc-js@1.8.13": {
       "name": "@grpc/grpc-js",
-      "version": "1.8.12",
+      "version": "1.8.13",
       "range": "^1.8.10",
       "licenses": "Apache-2.0",
       "repoUrl": "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js",
-      "versionedRepoUrl": "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js/tree/v1.8.12",
+      "versionedRepoUrl": "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js/tree/v1.8.13",
       "licenseFile": "node_modules/@grpc/grpc-js/LICENSE",
-      "licenseUrl": "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js/blob/v1.8.12/LICENSE",
+      "licenseUrl": "https://github.com/grpc/grpc-node/tree/master/packages/grpc-js/blob/v1.8.13/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Google Inc."
     },
-    "@grpc/proto-loader@0.7.5": {
+    "@grpc/proto-loader@0.7.6": {
       "name": "@grpc/proto-loader",
-      "version": "0.7.5",
+      "version": "0.7.6",
       "range": "^0.7.5",
       "licenses": "Apache-2.0",
       "repoUrl": "https://github.com/grpc/grpc-node",
-      "versionedRepoUrl": "https://github.com/grpc/grpc-node/tree/v0.7.5",
+      "versionedRepoUrl": "https://github.com/grpc/grpc-node/tree/v0.7.6",
       "licenseFile": "node_modules/@grpc/proto-loader/LICENSE",
-      "licenseUrl": "https://github.com/grpc/grpc-node/blob/v0.7.5/LICENSE",
+      "licenseUrl": "https://github.com/grpc/grpc-node/blob/v0.7.6/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Google Inc."
     },
-    "@newrelic/aws-sdk@5.0.2": {
+    "@newrelic/aws-sdk@5.0.4": {
       "name": "@newrelic/aws-sdk",
-      "version": "5.0.2",
+      "version": "5.0.4",
       "range": "^5.0.2",
       "licenses": "Apache-2.0",
       "repoUrl": "https://github.com/newrelic/node-newrelic-aws-sdk",
-      "versionedRepoUrl": "https://github.com/newrelic/node-newrelic-aws-sdk/tree/v5.0.2",
+      "versionedRepoUrl": "https://github.com/newrelic/node-newrelic-aws-sdk/tree/v5.0.4",
       "licenseFile": "node_modules/@newrelic/aws-sdk/LICENSE",
-      "licenseUrl": "https://github.com/newrelic/node-newrelic-aws-sdk/blob/v5.0.2/LICENSE",
+      "licenseUrl": "https://github.com/newrelic/node-newrelic-aws-sdk/blob/v5.0.4/LICENSE",
       "licenseTextSource": "file",
       "publisher": "New Relic Node.js agent team",
       "email": "nodejs@newrelic.com"
@@ -162,18 +162,6 @@
       "email": "i@izs.me",
       "url": "http://blog.izs.me"
     },
-    "nr-node-security-agent@1.0.0-limited-preview": {
-      "name": "nr-node-security-agent",
-      "version": "1.0.0-limited-preview",
-      "range": "github:k2io/nr-node-security-agent#agent_init",
-      "licenses": "Apache-2.0",
-      "repoUrl": "https://github.com/k2io/nr-node-security-agent",
-      "versionedRepoUrl": "https://github.com/k2io/nr-node-security-agent/tree/v1.0.0-limited-preview",
-      "licenseFile": "node_modules/nr-node-security-agent/README.md",
-      "licenseUrl": "https://github.com/k2io/nr-node-security-agent/blob/v1.0.0-limited-preview/README.md",
-      "licenseTextSource": "spdx",
-      "publisher": "newrelic"
-    },
     "readable-stream@3.6.2": {
       "name": "readable-stream",
       "version": "3.6.2",
@@ -250,15 +238,15 @@
       "email": "nathan@tootallnate.net",
       "url": "http://n8.io/"
     },
-    "@newrelic/test-utilities@7.2.1": {
+    "@newrelic/test-utilities@7.3.0": {
       "name": "@newrelic/test-utilities",
-      "version": "7.2.1",
+      "version": "7.3.0",
       "range": "^7.3.0",
       "licenses": "Apache-2.0",
       "repoUrl": "https://github.com/newrelic/node-test-utilities",
-      "versionedRepoUrl": "https://github.com/newrelic/node-test-utilities/tree/v7.2.1",
+      "versionedRepoUrl": "https://github.com/newrelic/node-test-utilities/tree/v7.3.0",
       "licenseFile": "node_modules/@newrelic/test-utilities/LICENSE",
-      "licenseUrl": "https://github.com/newrelic/node-test-utilities/blob/v7.2.1/LICENSE",
+      "licenseUrl": "https://github.com/newrelic/node-test-utilities/blob/v7.3.0/LICENSE",
       "licenseTextSource": "file",
       "publisher": "New Relic Node.js agent team",
       "email": "nodejs@newrelic.com"
@@ -274,15 +262,15 @@
       "licenseUrl": "https://github.com/octokit/rest.js/blob/v18.12.0/LICENSE",
       "licenseTextSource": "file"
     },
-    "@slack/bolt@3.12.2": {
+    "@slack/bolt@3.13.0": {
       "name": "@slack/bolt",
-      "version": "3.12.2",
+      "version": "3.13.0",
       "range": "^3.7.0",
       "licenses": "MIT",
       "repoUrl": "https://github.com/slackapi/bolt",
-      "versionedRepoUrl": "https://github.com/slackapi/bolt/tree/v3.12.2",
+      "versionedRepoUrl": "https://github.com/slackapi/bolt/tree/v3.13.0",
       "licenseFile": "node_modules/@slack/bolt/LICENSE",
-      "licenseUrl": "https://github.com/slackapi/bolt/blob/v3.12.2/LICENSE",
+      "licenseUrl": "https://github.com/slackapi/bolt/blob/v3.13.0/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Slack Technologies, LLC"
     },
@@ -336,15 +324,15 @@
       "publisher": "Jake Luer",
       "email": "jake@alogicalparadox.com"
     },
-    "clean-jsdoc-theme@4.2.6": {
+    "clean-jsdoc-theme@4.2.7": {
       "name": "clean-jsdoc-theme",
-      "version": "4.2.6",
+      "version": "4.2.7",
       "range": "^4.2.4",
       "licenses": "MIT",
       "repoUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme",
-      "versionedRepoUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/tree/v4.2.6",
+      "versionedRepoUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/tree/v4.2.7",
       "licenseFile": "node_modules/clean-jsdoc-theme/LICENSE",
-      "licenseUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/blob/v4.2.6/LICENSE",
+      "licenseUrl": "https://github.com/ankitskvmdam/clean-jsdoc-theme/blob/v4.2.7/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Ank"
     },
@@ -361,15 +349,15 @@
       "publisher": "TJ Holowaychuk",
       "email": "tj@vision-media.ca"
     },
-    "eslint-config-prettier@8.7.0": {
+    "eslint-config-prettier@8.8.0": {
       "name": "eslint-config-prettier",
-      "version": "8.7.0",
+      "version": "8.8.0",
       "range": "^8.3.0",
       "licenses": "MIT",
       "repoUrl": "https://github.com/prettier/eslint-config-prettier",
-      "versionedRepoUrl": "https://github.com/prettier/eslint-config-prettier/tree/v8.7.0",
+      "versionedRepoUrl": "https://github.com/prettier/eslint-config-prettier/tree/v8.8.0",
       "licenseFile": "node_modules/eslint-config-prettier/LICENSE",
-      "licenseUrl": "https://github.com/prettier/eslint-config-prettier/blob/v8.7.0/LICENSE",
+      "licenseUrl": "https://github.com/prettier/eslint-config-prettier/blob/v8.8.0/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Simon Lydell"
     },
@@ -447,15 +435,15 @@
       "licenseUrl": "https://github.com/SonarSource/eslint-plugin-sonarjs/blob/v0.18.0/LICENSE",
       "licenseTextSource": "file"
     },
-    "eslint@8.35.0": {
+    "eslint@8.38.0": {
       "name": "eslint",
-      "version": "8.35.0",
+      "version": "8.38.0",
       "range": "^8.24.0",
       "licenses": "MIT",
       "repoUrl": "https://github.com/eslint/eslint",
-      "versionedRepoUrl": "https://github.com/eslint/eslint/tree/v8.35.0",
+      "versionedRepoUrl": "https://github.com/eslint/eslint/tree/v8.38.0",
       "licenseFile": "node_modules/eslint/LICENSE",
-      "licenseUrl": "https://github.com/eslint/eslint/blob/v8.35.0/LICENSE",
+      "licenseUrl": "https://github.com/eslint/eslint/blob/v8.38.0/LICENSE",
       "licenseTextSource": "file",
       "publisher": "Nicholas C. Zakas",
       "email": "nicholas+npm@nczconsulting.com"
@@ -576,15 +564,15 @@
       "publisher": "Pedro Teixeira",
       "email": "pedro.teixeira@gmail.com"
     },
-    "prettier@2.8.4": {
+    "prettier@2.8.7": {
       "name": "prettier",
-      "version": "2.8.4",
+      "version": "2.8.7",
       "range": "^2.3.2",
       "licenses": "MIT",
       "repoUrl": "https://github.com/prettier/prettier",
-      "versionedRepoUrl": "https://github.com/prettier/prettier/tree/v2.8.4",
+      "versionedRepoUrl": "https://github.com/prettier/prettier/tree/v2.8.7",
       "licenseFile": "node_modules/prettier/LICENSE",
-      "licenseUrl": "https://github.com/prettier/prettier/blob/v2.8.4/LICENSE",
+      "licenseUrl": "https://github.com/prettier/prettier/blob/v2.8.7/LICENSE",
       "licenseTextSource": "file",
       "publisher": "James Long"
     },
@@ -693,15 +681,15 @@
       "publisher": "Bruce Williams",
       "email": "brwcodes@gmail.com"
     },
-    "testdouble@3.16.8": {
+    "testdouble@3.17.2": {
       "name": "testdouble",
-      "version": "3.16.8",
+      "version": "3.17.2",
       "range": "^3.16.6",
       "licenses": "MIT",
       "repoUrl": "https://github.com/testdouble/testdouble.js",
-      "versionedRepoUrl": "https://github.com/testdouble/testdouble.js/tree/v3.16.8",
+      "versionedRepoUrl": "https://github.com/testdouble/testdouble.js/tree/v3.17.2",
       "licenseFile": "node_modules/testdouble/LICENSE.txt",
-      "licenseUrl": "https://github.com/testdouble/testdouble.js/blob/v3.16.8/LICENSE.txt",
+      "licenseUrl": "https://github.com/testdouble/testdouble.js/blob/v3.17.2/LICENSE.txt",
       "licenseTextSource": "file",
       "publisher": "Justin Searls",
       "email": "justin@testdouble.com",
