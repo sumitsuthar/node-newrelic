@@ -163,8 +163,8 @@ tap.test('with default properties', (t) => {
     t.end()
   })
 
-  t.test('should not record by default sql', (t) => {
-    t.equal(configuration.transaction_tracer.record_sql, 'off')
+  t.test('should obfsucate sql by default', (t) => {
+    t.equal(configuration.transaction_tracer.record_sql, 'obfuscated')
     t.end()
   })
 
@@ -295,6 +295,11 @@ tap.test('with default properties', (t) => {
         deserialization: { enabled: true }
       }
     })
+    t.end()
+  })
+
+  t.test('should default heroku.use_dyno_names to true', (t) => {
+    t.equal(configuration.heroku.use_dyno_names, true)
     t.end()
   })
 })
