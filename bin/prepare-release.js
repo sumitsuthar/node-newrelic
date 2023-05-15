@@ -321,7 +321,7 @@ async function generateReleaseNotes(owner, repo) {
  */
 async function generateConventionalReleaseNotes(owner, repo, newVersion, markdownChangelog) {
   const github = new Github(owner, repo)
-  const latestRelease = await github.getLatestRelease()
+  const latestRelease = { tag_name: 'v10.1.0' }
 
   const changelog = new ConventionalChangelog({
     org: owner,
