@@ -35,6 +35,7 @@ jobs:
       with:
         repository: newrelic/node-newrelic
         path: agent-repo
+        ref: prep-release-git-log
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
