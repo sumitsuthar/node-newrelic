@@ -52,8 +52,7 @@ const exampleCommit = {
   }
 }
 
-const exampleMarkdown = `### v1.0.0 (2023-05-05)
-
+const exampleMarkdown = `### v1.0.0 (2020-04-03)
 #### ⚠ BREAKING CHANGES
 
 * **thing:** updated Thing to prevent accidental modifications to inputs
@@ -68,12 +67,14 @@ const exampleMarkdown = `### v1.0.0 (2023-05-05)
 tap.test('Conventional Changelog Class', (testHarness) => {
   testHarness.autoend()
 
+  let clock
   let MockGithubSdk
   let mockGetPrByCommit
   let mockGitLog
   let ConventionalChangelog
 
   testHarness.beforeEach(() => {
+    clock = sinon.useFakeTimers(new Date('2020-04-03'))
     mockGetPrByCommit = sinon.stub()
     MockGithubSdk = sinon.stub().returns({
       getPullRequestByCommit: mockGetPrByCommit
@@ -85,6 +86,10 @@ tap.test('Conventional Changelog Class', (testHarness) => {
       './github': MockGithubSdk,
       'git-raw-commits': sinon.stub().returns(mockGitLog)
     })
+  })
+
+  testHarness.afterEach(() => {
+    clock.restore()
   })
 
   testHarness.test('rankedGroupSort - should order a list of groupings based on rank', (t) => {
@@ -181,10 +186,10 @@ tap.test('Conventional Changelog Class', (testHarness) => {
 
   testHarness.test('generateJsonChangelog - should create the new JSON changelog entry', (t) => {
     const commits = [
-      { type: 'fix', subject: 'Fixed issue one' },
-      { type: 'fix', subject: 'Fixed issue two' },
-      { type: 'feat', subject: 'Added something new' },
-      { type: 'security', subject: 'Bumped some dep' }
+      { type: 'fix', subject: 'Fixed issue one (#1234)' },
+      { type: 'fix', subject: ' Fixed issue two' },
+      { type: 'feat', subject: 'Added something new ' },
+      { type: 'security', subject: ' Bumped some dep (#4567)' }
     ]
     const changelog = new ConventionalChangelog({ newVersion: '1.0.0', previousVersion: '0.9.0' })
 
