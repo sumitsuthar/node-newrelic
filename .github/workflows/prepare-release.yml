@@ -11,7 +11,7 @@ on:
 
 jobs:
   agent-release-notes:
-    uses: newrelic/node-newrelic/.github/workflows/prep-release.yml@main
+    uses: newrelic/node-newrelic/.github/workflows/prep-release.yml@prep-release-git-log
     with:
       release_type: ${{ github.event.inputs.release_type }}
       use_new_release: ${{ vars.USE_NEW_RELEASE }}
