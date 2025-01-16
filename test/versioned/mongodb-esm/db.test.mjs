@@ -51,7 +51,7 @@ test('addUser, authenticate, removeUser', async (t) => {
       if (typeof db.authenticate === 'function') {
         db.authenticate(username, password, authed)
       } else {
-        t.diagnostic('skipping authentication test, not supported on db')
+        // skipping authentication test, not supported on db
         db.removeUser(username, removedNoAuth)
       }
     }
@@ -461,11 +461,12 @@ function verifyMongoSegments({ t, tx, expectedSegments }) {
   let current = tx.trace.root
 
   for (let i = 0, l = expectedSegments.length; i < l; i += 1) {
+    let children = tx.trace.getChildren(current.id)
     // Filter out net.createConnection segments as they could occur during
     // execution, and we don't need to verify them.
-    current.children = current.children.filter((c) => c.name !== 'net.createConnection')
-    assert.equal(current.children.length, 1, 'should have one child segment')
-    current = current.children[0]
+    children = children.filter((c) => c.name !== 'net.createConnection')
+    assert.equal(children.length, 1, 'should have one child segment')
+    current = children[0]
     assert.equal(
       current.name,
       expectedSegments[i],
@@ -476,7 +477,7 @@ function verifyMongoSegments({ t, tx, expectedSegments }) {
     // datastore instance attributes.
     if (/^Datastore\/.*?\/MongoDB/.test(current.name) === true) {
       if (isBadSegment(current) === true) {
-        t.diagnostic(`skipping attributes check for ${current.name}`)
+        // skipping attributes check for ${current.name}
         continue
       }
 

@@ -58,7 +58,7 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       done() {},
       succeed() {},
       fail() {},
-      functionName: functionName,
+      functionName,
       functionVersion: 'TestVersion',
       invokedFunctionArn: 'arn:test:function',
       memoryLimitInMB: '128',
@@ -104,6 +104,48 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       headers: { responseHeader: 'headerValue' },
       body: 'worked'
     }
+
+    await t.test(
+      'should not create web transaction for custom direct invocation payload',
+      (t, end) => {
+        const { agent, awsLambda, stubContext, stubCallback } = t.nr
+        agent.on('transactionFinished', confirmAgentAttribute)
+
+        const nonApiGatewayProxyEvent = {
+          resource: {
+            some: 'key'
+          },
+          action: 'someAction'
+        }
+
+        const wrappedHandler = awsLambda.patchLambdaHandler((event, context, callback) => {
+          const transaction = agent.tracer.getTransaction()
+
+          assert.ok(transaction)
+          assert.equal(transaction.type, 'bg')
+          assert.equal(transaction.getFullName(), expectedBgTransactionName)
+          assert.equal(transaction.isActive(), true)
+
+          callback(null, validResponse)
+        })
+
+        wrappedHandler(nonApiGatewayProxyEvent, stubContext, stubCallback)
+
+        function confirmAgentAttribute(transaction) {
+          const agentAttributes = transaction.trace.attributes.get(ATTR_DEST.TRANS_EVENT)
+          const segment = transaction.baseSegment
+          const spanAttributes = segment.attributes.get(ATTR_DEST.SPAN_EVENT)
+
+          assert.equal(agentAttributes['request.method'], undefined)
+          assert.equal(agentAttributes['request.uri'], undefined)
+
+          assert.equal(spanAttributes['request.method'], undefined)
+          assert.equal(spanAttributes['request.uri'], undefined)
+
+          end()
+        }
+      }
+    )
 
     await t.test('should create web transaction', (t, end) => {
       const { agent, awsLambda, stubContext, stubCallback } = t.nr
@@ -375,14 +417,12 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       const apiGatewayProxyEvent = lambdaSampleEvents.apiGatewayProxyEvent
 
       const wrappedHandler = awsLambda.patchLambdaHandler(() => {
-        return new Promise((resolve) => {
-          resolve({
-            status: 200,
-            statusCode: 200,
-            statusDescription: 'Success',
-            isBase64Encoded: false,
-            headers: {}
-          })
+        return Promise.resolve({
+          status: 200,
+          statusCode: 200,
+          statusDescription: 'Success',
+          isBase64Encoded: false,
+          headers: {}
         })
       })
 
@@ -624,7 +664,6 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       assert.equal(txTrace[REQ_ID], stubContext.awsRequestId)
       assert.equal(txTrace[LAMBDA_ARN], stubContext.invokedFunctionArn)
       assert.equal(txTrace[COLDSTART], true)
-
       end()
     }
 
@@ -869,14 +908,14 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       assert.equal(
         agentAttributes[EVENTSOURCE_ARN],
         'arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-279XGJDqGZ5rsrHC2Fjr/49e9d65c45c6791a'
-      ) // eslint-disable-line max-len
+      )
 
       assert.equal(agentAttributes[EVENTSOURCE_TYPE], 'alb')
 
       assert.equal(
         spanAttributes[EVENTSOURCE_ARN],
         'arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-279XGJDqGZ5rsrHC2Fjr/49e9d65c45c6791a'
-      ) // eslint-disable-line max-len
+      )
 
       assert.equal(spanAttributes[EVENTSOURCE_TYPE], 'alb')
       end()
@@ -961,7 +1000,7 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       assert.equal(
         agentAttributes[EVENTSOURCE_ARN],
         'arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-279XGJDqGZ5rsrHC2Fjr/49e9d65c45c6791a'
-      ) // eslint-disable-line max-len
+      )
 
       assert.equal(agentAttributes[EVENTSOURCE_TYPE], 'alb')
 
@@ -973,7 +1012,7 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       assert.equal(
         spanAttributes[EVENTSOURCE_ARN],
         'arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-279XGJDqGZ5rsrHC2Fjr/49e9d65c45c6791a'
-      ) // eslint-disable-line max-len
+      )
 
       assert.equal(spanAttributes[EVENTSOURCE_TYPE], 'alb')
 
@@ -1033,6 +1072,7 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       agent.on('harvestStarted', confirmErrorCapture)
 
       const wrappedHandler = awsLambda.patchLambdaHandler((event, context, callback) => {
+        // eslint-disable-next-line n/no-callback-literal
         callback('failed')
       })
 
@@ -1370,6 +1410,8 @@ test('AwsLambda.patchLambdaHandler', async (t) => {
       let transaction
       const wrappedHandler = awsLambda.patchLambdaHandler(async () => {
         transaction = agent.tracer.getTransaction()
+        // We need this promise to evaluate out-of-band in order to test the
+        // correct scenario.
         // eslint-disable-next-line no-new
         new Promise(() => {
           assert.ok(transaction)

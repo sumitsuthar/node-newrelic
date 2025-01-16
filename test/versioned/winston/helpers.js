@@ -8,7 +8,7 @@
 const assert = require('node:assert')
 const helpers = module.exports
 
-const { CONTEXT_KEYS, validateLogLine } = require('../../lib/logging-helper')
+const { CONTEXT_KEYS, validateLogLine, validateCommonAttrs } = require('../../lib/logging-helper')
 
 /**
  * Stream factory for a test.  Iterates over every message and calls an assertFn.
@@ -109,9 +109,10 @@ helpers.logWithAggregator = function logWithAggregator({ logger, loggers, stream
  * local log decoration is enabled.  Local log decoration asserts `NR-LINKING` string exists on msg
  *
  * @param {Object} opts
- * @param {boolean} [opts.includeLocalDecorating=false] is local log decoration enabled
- * @param {boolean} [opts.timestamp=false] does timestamp exist on original message
- * @param {string} [opts.level=info] level to assert is on message
+ * @param {boolean} [opts.includeLocalDecorating] is local log decoration enabled
+ * @param {boolean} [opts.timestamp] does timestamp exist on original message
+ * @param {string} [opts.level] level to assert is on message
+ * @param msg
  */
 helpers.originalMsgAssertion = function originalMsgAssertion(
   { includeLocalDecorating = false, timestamp = false, level = 'info' },
@@ -165,4 +166,8 @@ helpers.logForwardingMsgAssertion = function logForwardingMsgAssertion(logLine, 
     assert.equal(typeof logLine['trace.id'], 'string', 'msg in trans should have trace id')
     assert.equal(typeof logLine['span.id'], 'string', 'msg in trans should have span id')
   }
+
+  const [payload] = agent.logs._toPayloadSync()
+  const commonAttrs = payload.common.attributes
+  validateCommonAttrs({ commonAttrs, config: agent.config })
 }

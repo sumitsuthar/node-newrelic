@@ -168,7 +168,8 @@ test('local log decorating', async (t) => {
       msgs.forEach((msg) => {
         assert.match(
           msg[MESSAGE],
-          /123 info: [in|out of]+ trans NR-LINKING|.*$/,
+          // eslint-disable-next-line sonarjs/anchor-precedence
+          /123 info: (in|out of)+ trans NR-LINKING|.*$/,
           'should add NR-LINKING data to formatted log line'
         )
       })
@@ -381,7 +382,7 @@ test('log forwarding enabled', async (t) => {
     const handleMessages = makeStreamTest((msgs) => {
       const events = agent.logs.getEvents()
       events.forEach((event) => {
-        logForwardingMsgAssertion(t, event, agent)
+        logForwardingMsgAssertion(event, agent)
         assert.equal(
           event.label,
           '123',
@@ -391,7 +392,7 @@ test('log forwarding enabled', async (t) => {
       msgs.forEach((msg) => {
         assert.match(
           msg[MESSAGE],
-          /123 info: [in|out of]+ trans$/,
+          /123 info: (in|out of)+ trans$/,
           'should not affect original log line'
         )
       })
@@ -546,7 +547,7 @@ test('metrics', async (t) => {
     })
   }
 
-  await t.test(`should count logger metrics for logger.configure`, (t, end) => {
+  await t.test('should count logger metrics for logger.configure', (t, end) => {
     const { agent, winston, nullStream } = t.nr
 
     const logger = winston.createLogger()

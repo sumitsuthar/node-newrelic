@@ -8,7 +8,7 @@
 const assert = require('node:assert')
 
 const helpers = module.exports
-const { CONTEXT_KEYS, validateLogLine } = require('../../lib/logging-helper')
+const { CONTEXT_KEYS, validateLogLine, validateCommonAttrs } = require('../../lib/logging-helper')
 
 /**
  * Provides a mocked-up writable stream that can be provided to Bunyan for easier testing
@@ -46,8 +46,10 @@ helpers.logStuff = function logStuff({ logger, helper, agent }) {
  * local log decoration is enabled.  Local log decoration asserts `NR-LINKING` string exists on msg
  *
  * @param {Object} opts
- * @param {boolean} [opts.includeLocalDecorating=false] is local log decoration enabled
- * @param {string} [opts.level=info] level to assert is on message
+ * @param {boolean} [opts.includeLocalDecorating] is local log decoration enabled
+ * @param {string} [opts.level] level to assert is on message
+ * @param opts.logLine
+ * @param opts.hostname
  */
 helpers.originalMsgAssertion = function originalMsgAssertion({
   includeLocalDecorating = false,
@@ -56,9 +58,7 @@ helpers.originalMsgAssertion = function originalMsgAssertion({
   hostname
 }) {
   CONTEXT_KEYS.forEach((key) => {
-    if (key !== 'hostname') {
-      assert.equal(logLine[key], undefined, `should not have ${key}`)
-    }
+    assert.equal(logLine[key], undefined, `should not have ${key}`)
   })
 
   assert.ok(logLine.time, 'should include timestamp')
@@ -103,4 +103,8 @@ helpers.logForwardingMsgAssertion = function logForwardingMsgAssertion(logLine, 
     assert.equal(typeof logLine['trace.id'], 'string', 'msg in trans should have trace id')
     assert.equal(typeof logLine['span.id'], 'string', 'msg in trans should have span id')
   }
+
+  const [payload] = agent.logs._toPayloadSync()
+  const commonAttrs = payload.common.attributes
+  validateCommonAttrs({ commonAttrs, config: agent.config })
 }

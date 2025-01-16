@@ -13,18 +13,38 @@ const https = require('node:https')
 const querystring = require('node:querystring')
 const helper = require('./agent_helper')
 const fakeCert = require('./fake-cert')
+const CollectorValidators = require('./test-collector-validators')
 
+/**
+ * Extends {@link http.IncomingMessage} with convenience properties and methods.
+ * @typedef {object} CollectorIncomingRequest
+ * @property
+ */
+
+/**
+ * Extends {@link http.OutgoingMessage} with convenience properties and methods.
+ * @typedef {object} CollectorOutgoingResponse
+ * @property
+ */
+
+/**
+ * Emulates the New Relic collector. Provides convenience methods that make
+ * writing tests against collector processing easier.
+ */
 class Collector {
   #handlers = new Map()
+  #cert
   #server
   #address
   #runId
+  #validators = new CollectorValidators()
 
   constructor({ runId = 42 } = {}) {
+    this.#cert = fakeCert()
     this.#runId = runId
     this.#server = https.createServer({
-      key: fakeCert.privateKey,
-      cert: fakeCert.certificate
+      key: this.#cert.privateKey,
+      cert: this.#cert.certificate
     })
     this.#server.on('request', (req, res) => {
       const qs = querystring.decode(req.url.slice(req.url.indexOf('?') + 1))
@@ -34,17 +54,40 @@ class Collector {
         return res.end('handler not found: ' + req.url)
       }
 
+      /**
+       * Send the response as serialized JSON.
+       *
+       * @param {object} params
+       * @param {object} params.payload The object to serialize into a response.
+       * @param {number} [params.code] The status code to use for the
+       * response.
+       * @memberof CollectorOutgoingResponse
+       */
       res.json = function ({ payload, code = 200 }) {
         this.writeHead(code, { 'content-type': 'application/json' })
         this.end(JSON.stringify(payload))
       }
 
+      /**
+       * The query string associated with the request, parsed into an object.
+       * @type {object}
+       * @memberof CollectorIncomingRequest
+       */
+      req.query = qs
+
+      /**
+       * Retrieve the body of a POST-like request.
+       *
+       * @memberof CollectorIncomingRequest
+       * @returns {Promise<string>} The body of an incoming POST-like request
+       * collected as a string.
+       */
       req.body = function () {
         let resolve
         let reject
-        const promise = new Promise((res, rej) => {
-          resolve = res
-          reject = rej
+        const promise = new Promise((_resolve, _reject) => {
+          resolve = _resolve
+          reject = _reject
         })
 
         let data = ''
@@ -58,6 +101,17 @@ class Collector {
           reject(error)
         })
         return promise
+      }
+
+      /**
+       * Get the value of a specific header.
+       *
+       * @memberof CollectorIncomingRequest
+       * @param {string} name
+       * @returns {*}
+       */
+      req.getHeader = function (name) {
+        return req.headers[name.toLowerCase()]
       }
 
       handler.isDone = true
@@ -112,7 +166,7 @@ class Collector {
    * @returns {string}
    */
   get cert() {
-    return fakeCert.certificate
+    return this.#cert.certificate
   }
 
   /**
@@ -159,6 +213,16 @@ class Collector {
         }
       })
     }
+  }
+
+  /**
+   * A set of validation functions that can be used to verify specific
+   * aspects of HTTP requests match expectation.
+   *
+   * @returns {CollectorValidators}
+   */
+  get validators() {
+    return this.#validators
   }
 
   /**

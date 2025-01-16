@@ -70,7 +70,7 @@ test('Agent API - instrumentLoadedModule', async (t) => {
 
   await t.test('should return false when no instrumentation exists', (t, end) => {
     const { api } = t.nr
-    const result = api.instrumentLoadedModule('tap', {})
+    const result = api.instrumentLoadedModule('sinon', {})
 
     assert.equal(result, false)
 
@@ -97,9 +97,8 @@ test('Agent API - instrumentLoadedModule', async (t) => {
     const EMPTY_MODULE = {}
     let mod = EMPTY_MODULE
     try {
-      // eslint-disable-next-line node/no-missing-require
       mod = require('mysql')
-    } catch (e) {}
+    } catch {}
     assert.ok(mod === EMPTY_MODULE, 'mysql is not installed')
 
     // attempt to instrument -- if nothing throws we're good

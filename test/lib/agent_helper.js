@@ -5,8 +5,6 @@
 
 'use strict'
 
-const path = require('path')
-const fs = require('fs').promises
 const Agent = require('../../lib/agent')
 const API = require('../../api')
 const zlib = require('zlib')
@@ -24,15 +22,9 @@ const crypto = require('crypto')
 const util = require('util')
 const cp = require('child_process')
 
-const KEYPATH = path.join(__dirname, 'test-key.key')
-const CERTPATH = path.join(__dirname, 'self-signed-test-certificate.crt')
-const CAPATH = path.join(__dirname, 'ca-certificate.crt')
-
 let _agent = null
 let _agentApi = null
 const tasks = []
-// Load custom tap assertions
-require('./custom-tap-assertions')
 
 const helper = module.exports
 
@@ -81,6 +73,7 @@ helper.getTracer = () => _agent?.tracer
  *                      See agent.js for details, but so far this includes
  *                      passing in a config object and the connection stub
  *                      created in this function.
+ * @param setState
  * @returns {Agent} Agent with a stubbed configuration.
  */
 helper.loadMockedAgent = function loadMockedAgent(conf, setState = true) {
@@ -91,14 +84,6 @@ helper.loadMockedAgent = function loadMockedAgent(conf, setState = true) {
   // agent needs a 'real' configuration
   const configurator = require('../../lib/config')
   const config = configurator.createInstance(conf)
-
-  if (!config.debug) {
-    config.debug = {}
-  }
-
-  // adds link to parents node in traces for easier testing
-  config.debug.double_linked_transactions = true
-
   // stub applications
   config.applications = () => ['New Relic for Node.js tests']
 
@@ -129,6 +114,8 @@ helper.getAgentApi = function getAgentApi() {
  * @param {String} method The method being invoked on the collector.
  * @param number runID  Agent run ID (optional).
  *
+ * @param runID
+ * @param protocolVersion
  * @returns {String} URL path for the collector.
  */
 helper.generateCollectorPath = function generateCollectorPath(method, runID, protocolVersion) {
@@ -172,9 +159,10 @@ helper.generateAllPaths = (runId) => {
  *  but so far this includes passing in a config object and the connection
  *  stub created in this function.
  *
- * @param {boolean} [setState=true]
+ * @param {boolean} [setState]
  *  Initializes agent's state to 'started', enabling data collection.
  *
+ * @param shimmer
  * @returns {Agent} Agent with a stubbed configuration.
  */
 helper.instrumentMockedAgent = (conf, setState = true, shimmer = require('../../lib/shimmer')) => {
@@ -193,6 +181,7 @@ helper.instrumentMockedAgent = (conf, setState = true, shimmer = require('../../
  * Helper to check if security agent should be loaded
  *
  * @param {Agent} Agent with a stubbed configuration
+ * @param agent
  * @returns {boolean}
  */
 helper.isSecurityAgentEnabled = function isSecurityAgentEnabled(agent) {
@@ -204,6 +193,7 @@ helper.isSecurityAgentEnabled = function isSecurityAgentEnabled(agent) {
  * and requires it and calls start
  *
  * @param {Agent} Agent with a stubbed configuration
+ * @param agent
  */
 helper.maybeLoadSecurityAgent = function maybeLoadSecurityAgent(agent) {
   if (helper.isSecurityAgentEnabled(agent)) {
@@ -218,6 +208,7 @@ helper.maybeLoadSecurityAgent = function maybeLoadSecurityAgent(agent) {
  * files in its require cache so it can be re-loaded
  *
  * @param {Agent} Agent with a stubbed configuration
+ * @param agent
  */
 helper.maybeUnloadSecurityAgent = function maybeUnloadSecurityAgent(agent) {
   if (helper.isSecurityAgentEnabled(agent)) {
@@ -230,6 +221,8 @@ helper.maybeUnloadSecurityAgent = function maybeUnloadSecurityAgent(agent) {
  * is shut down.
  *
  * @param Agent agent The agent to shut down.
+ * @param agent
+ * @param shimmer
  */
 helper.unloadAgent = (agent, shimmer = require('../../lib/shimmer')) => {
   agent.emit('unload')
@@ -271,7 +264,7 @@ helper.loadTestAgent = (t, conf, setState = true) => {
  *
  * @param {Agent} agent The agent whose tracer should be used to create the
  *                      transaction.
- * @param {string} [type='web'] Indicates the class of the transaction.
+ * @param {string} [type] Indicates the class of the transaction.
  * @param {Function} callback The function to be run within the transaction.
  */
 helper.runInTransaction = (agent, type, callback) => {
@@ -300,6 +293,9 @@ helper.runInTransaction = (agent, type, callback) => {
 /**
  * Proxy for runInTransaction that names the transaction that the
  * callback is executed in
+ * @param agent
+ * @param type
+ * @param callback
  */
 helper.runInNamedTransaction = (agent, type, callback) => {
   if (!callback && typeof type === 'function') {
@@ -315,14 +311,16 @@ helper.runInNamedTransaction = (agent, type, callback) => {
 
 helper.runInSegment = (agent, name, callback) => {
   const tracer = agent.tracer
+  const parent = tracer.getSegment()
 
-  return tracer.addSegment(name, null, null, null, callback)
+  return tracer.addSegment(name, null, parent, null, callback)
 }
 
 /**
  * Select Redis DB index and flush entries in it.
  *
  * @param {redis} [redis]
+ * @param client
  * @param {number} dbIndex
  * @param {function} callback
  *  The operations to be performed while the server is running.
@@ -344,10 +342,6 @@ helper.flushRedisDb = (client, dbIndex) => {
       })
     })
   })
-}
-
-helper.withSSL = () => {
-  return Promise.all([fs.readFile(KEYPATH), fs.readFile(CERTPATH), fs.readFile(CAPATH)])
 }
 
 helper.randomPort = (callback) => {
@@ -376,17 +370,15 @@ helper.randomPort = (callback) => {
 helper.startServerWithRandomPortRetry = (server, maxAttempts = 5) => {
   let attempts = 0
   server.on('error', (e) => {
-    // server port not guranteed to be not in use
+    // server port not guaranteed to be not in use
     if (e.code === 'EADDRINUSE') {
       if (attempts >= maxAttempts) {
-        // eslint-disable-next-line no-console
         console.log('Exceeded max attempts (%s), bailing out.', maxAttempts)
         throw new Error('Unable to get unused port')
       }
 
       attempts++
 
-      // eslint-disable-next-line no-console
       console.log('Address in use, retrying...')
       setTimeout(() => {
         server.close()
@@ -407,6 +399,7 @@ helper.startServerWithRandomPortRetry = (server, maxAttempts = 5) => {
  * request is made after instrumentation is registered
  * we want to make sure we get the original library and not
  * our instrumented one
+ * @param ca
  */
 helper.getRequestLib = function getRequestLib(ca) {
   const request = ca ? https.request : http.request
@@ -471,48 +464,6 @@ helper.makeRequest = (url, options, callback) => {
   req.end()
 }
 
-helper.temporarilyRemoveListeners = (t, emitter, evnt) => {
-  if (!emitter) {
-    t.comment('Not removing %s listeners, emitter does not exist', evnt)
-    return
-  }
-
-  t.comment('Removing listeners for %s', evnt)
-  let listeners = emitter.listeners(evnt)
-  t.teardown(() => {
-    t.comment('Re-adding listeners for %s', evnt)
-    listeners.forEach((fn) => {
-      emitter.on(evnt, fn)
-    })
-    listeners = []
-  })
-  emitter.removeAllListeners(evnt)
-}
-
-/**
- * Tap will prevent certain uncaughtException behaviors from occuring
- * and adds extra properties. This bypasses that.
- * While t.expectUncaughtException seems intended for a similar use case,
- * it does not seem to work appropriately for some of our use casese.
- */
-helper.temporarilyOverrideTapUncaughtBehavior = (tap, t) => {
-  const originalThrew = tap.threw
-  // Prevent tap from failing test and remove extra prop
-  tap.threw = (err) => {
-    delete err.tapCaught
-  }
-
-  const originalTestThrew = t.threw
-  t.threw = (err) => {
-    delete err.tapCaught
-  }
-
-  t.teardown(() => {
-    t.threw = originalTestThrew
-    tap.threw = originalThrew
-  })
-}
-
 /**
  * Set up an unref'd loop to execute tasks that are added
  * via helper.runOutOfContext
@@ -533,15 +484,13 @@ helper.runOutOfContext = function runOutOfContext(fn) {
   tasks.push(fn)
 }
 
-helper.decodeServerlessPayload = (t, payload, cb) => {
+helper.decodeServerlessPayload = (payload, cb) => {
   if (!payload) {
-    t.comment('No payload to decode')
     return cb()
   }
 
   zlib.gunzip(Buffer.from(payload, 'base64'), (err, decompressed) => {
     if (err) {
-      t.comment('Error occurred when decompressing payload')
       return cb(err)
     }
 
@@ -570,6 +519,7 @@ helper.getMetrics = function getMetrics(agent) {
  *
  * @param {object} shim shim lib
  * @param {Function} original callback
+ * @param cb
  */
 helper.checkWrappedCb = function checkWrappedCb(shim, cb) {
   // The wrapped calledback is always the last argument
@@ -633,17 +583,6 @@ helper.isSupportedVersion = function isSupportedVersion(version) {
 }
 
 /**
- * The https-proxy-server we support finally supports keep alive
- * See: https://github.com/TooTallNate/proxy-agents/pull/147
- * In order for tap to shutdown we must destroy the https agent.
- * This assumes the agent already exists as a singleton so we can destroy
- * the active http agent
- */
-helper.destroyProxyAgent = function destroyProxyAgent() {
-  require('../../lib/collector/http-agents').proxyAgent().destroy()
-}
-
-/**
  * Gets a shim instance for a package.
  * @param {object} pkg exported obj that is instrumented
  * @returns The existing or newly created shim.
@@ -663,6 +602,7 @@ helper.getShim = function getShim(pkg) {
  */
 helper.execSync = function execSync({ cwd, script }) {
   try {
+    // eslint-disable-next-line sonarjs/os-command
     cp.execSync(`node ./${script}`, {
       stdio: 'pipe',
       encoding: 'utf8',
