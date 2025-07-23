@@ -22,6 +22,13 @@ const metricsStub = {
 const collectorStub = sinon.stub()
 const harvesterStub = { add: sinon.stub() }
 const agent = {
+  config: {
+    distributed_tracing: {
+      in_process_spans: {
+        enabled: true
+      }
+    }
+  },
   collector: collectorStub,
   metrics: metricsStub,
   harvester: harvesterStub
@@ -120,7 +127,8 @@ test('should trim host and port options when they are strings', async () => {
   createSpanEventAggregator(config, agent)
   assert.deepEqual(config.infinite_tracing.trace_observer, {
     host: VALID_HOST,
-    port: '300'
+    port: '300',
+    insecure: false
   })
 })
 

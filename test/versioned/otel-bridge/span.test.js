@@ -16,13 +16,17 @@ const { DESTINATIONS: ATTR_DESTINATION } = require('../../../lib/config/attribut
 
 const { DESTINATIONS } = require('../../../lib/transaction')
 const {
+  ATTR_AWS_REGION,
   ATTR_DB_NAME,
+  ATTR_DB_OPERATION,
   ATTR_DB_STATEMENT,
   ATTR_DB_SYSTEM,
+  ATTR_DYNAMO_TABLE_NAMES,
   ATTR_GRPC_STATUS_CODE,
   ATTR_FAAS_INVOKED_PROVIDER,
+  ATTR_FAAS_INVOKED_NAME,
+  ATTR_FAAS_INVOKED_REGION,
   ATTR_FULL_URL,
-  ATTR_HTTP_HOST,
   ATTR_HTTP_METHOD,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_RES_STATUS_CODE,
@@ -35,8 +39,10 @@ const {
   ATTR_MESSAGING_DESTINATION_NAME,
   ATTR_MESSAGING_MESSAGE_CONVERSATION_ID,
   ATTR_MESSAGING_OPERATION,
+  ATTR_MESSAGING_OPERATION_NAME,
   ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY,
   ATTR_MESSAGING_SYSTEM,
+  ATTR_MONGODB_COLLECTION,
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
   ATTR_RPC_METHOD,
@@ -48,6 +54,8 @@ const {
   ATTR_URL_QUERY,
   ATTR_URL_SCHEME,
   DB_SYSTEM_VALUES,
+  EXCEPTION_MESSAGE,
+  EXCEPTION_STACKTRACE,
   MESSAGING_SYSTEM_KIND_VALUES,
   SPAN_STATUS_CODE
 } = require('../../../lib/otel/constants.js')
@@ -55,8 +63,9 @@ const { assertSpanKind } = require('../../lib/custom-assertions')
 
 test.beforeEach((ctx) => {
   const agent = helper.instrumentMockedAgent({
-    feature_flag: {
-      opentelemetry_bridge: true
+    opentelemetry_bridge: {
+      enabled: true,
+      traces: { enabled: true }
     },
     // for AWS entity linking tests
     cloud: {
@@ -72,11 +81,6 @@ test.beforeEach((ctx) => {
 
 test.afterEach((ctx) => {
   helper.unloadAgent(ctx.nr.agent)
-  // disable all global constructs from trace sdk
-  otel.trace.disable()
-  otel.context.disable()
-  otel.propagation.disable()
-  otel.diag.disable()
 })
 
 test('mix internal and NR span tests', (t, end) => {
@@ -143,46 +147,13 @@ test('mix internal and NR span tests', (t, end) => {
   })
 })
 
-test('client span(http) is bridge accordingly', (t, end) => {
-  const { agent, tracer } = t.nr
-  helper.runInTransaction(agent, (tx) => {
-    tx.name = 'http-external-test'
-    tracer.startActiveSpan('http-outbound', { kind: otel.SpanKind.CLIENT, attributes: { [ATTR_HTTP_HOST]: 'newrelic.com', [ATTR_NET_PEER_NAME]: 'newrelic.com', [ATTR_HTTP_METHOD]: 'GET' } }, (span) => {
-      const segment = agent.tracer.getSegment()
-      assert.equal(segment.name, 'External/newrelic.com')
-      assert.equal(tx.traceId, span.spanContext().traceId)
-      span.end()
-      const duration = hrTimeToMilliseconds(span.duration)
-      assert.equal(duration, segment.getDurationInMillis())
-      tx.end()
-      assertSpanKind({
-        agent,
-        segments: [
-          { name: segment.name, kind: 'client' }
-        ]
-      })
-      const metrics = tx.metrics.scoped[tx.name]
-      assert.equal(metrics['External/newrelic.com/http'].callCount, 1)
-      const unscopedMetrics = tx.metrics.unscoped
-      assert.equal(unscopedMetrics['External/newrelic.com/http'].callCount, 1)
-      assert.equal(unscopedMetrics['External/newrelic.com/all'].callCount, 1)
-      assert.equal(unscopedMetrics['External/all'].callCount, 1)
-      assert.equal(unscopedMetrics['External/allWeb'].callCount, 1)
-      end()
-    })
-  })
-})
-
 test('Http external span is bridged accordingly', (t, end) => {
   const attributes = {
     [ATTR_SERVER_ADDRESS]: 'www.newrelic.com',
     [ATTR_HTTP_REQUEST_METHOD]: 'GET',
     [ATTR_SERVER_PORT]: 8080,
     [ATTR_URL_PATH]: '/search',
-    [ATTR_URL_QUERY]: 'q=test',
-    [ATTR_URL_SCHEME]: 'https',
-    [ATTR_HTTP_HOST]: 'www.newrelic.com',
-    [ATTR_FULL_URL]: 'https://www.newrelic.com:8080/search?q=test'
+    [ATTR_FULL_URL]: 'https://www.newrelic.com:8080/search?q=test&key=value',
   }
 
   const { agent, tracer } = t.nr
@@ -214,6 +185,17 @@ test('Http external span is bridged accordingly', (t, end) => {
       assert.equal(spanAttributes.hostname, attributes[ATTR_SERVER_ADDRESS])
       assert.equal(spanAttributes.port, attributes[ATTR_SERVER_PORT])
       assert.equal(spanAttributes['request.parameters.q'], 'test')
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/www.newrelic.com/http'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/www.newrelic.com/all',
+        'External/www.newrelic.com/http'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
       end()
     })
   })
@@ -224,17 +206,14 @@ test('Http external span is bridged accordingly(legacy attributes test)', (t, en
     [ATTR_NET_PEER_NAME]: 'www.newrelic.com',
     [ATTR_HTTP_METHOD]: 'GET',
     [ATTR_NET_PEER_PORT]: 8080,
-    [ATTR_URL_QUERY]: 'q=test',
-    [ATTR_HTTP_HOST]: 'www.newrelic.com',
-    [ATTR_HTTP_URL]: 'https://www.newrelic.com:8080/search?q=test'
+    [ATTR_HTTP_URL]: 'https://www.newrelic.com:8080/search?q=test&key=value'
   }
 
   const { agent, tracer } = t.nr
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'http-external-test'
     tracer.startActiveSpan('http-outbound', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
-      span.setAttribute(ATTR_HTTP_RES_STATUS_CODE, 200)
-      span.setAttribute(ATTR_HTTP_STATUS_TEXT, 'OK')
+      span.setAttribute(ATTR_HTTP_STATUS_CODE, 200)
       const segment = agent.tracer.getSegment()
       assert.equal(segment.name, 'External/www.newrelic.com/search')
       assert.equal(tx.traceId, span.spanContext().traceId)
@@ -255,10 +234,163 @@ test('Http external span is bridged accordingly(legacy attributes test)', (t, en
       // attributes.url shouldn't include the query
       assert.equal(attrs.url, `https://${attributes[ATTR_NET_PEER_NAME]}:8080/search`)
       assert.equal(spanAttributes['http.statusCode'], 200)
-      assert.equal(spanAttributes['http.statusText'], 'OK')
       assert.equal(spanAttributes.hostname, attributes[ATTR_NET_PEER_NAME])
       assert.equal(spanAttributes.port, attributes[ATTR_NET_PEER_PORT])
       assert.equal(spanAttributes['request.parameters.q'], 'test')
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/www.newrelic.com/http'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/www.newrelic.com/all',
+        'External/www.newrelic.com/http'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
+      end()
+    })
+  })
+})
+
+test('rpc external span is bridged accordingly', (t, end) => {
+  const attributes = {
+    [ATTR_SERVER_ADDRESS]: 'www.newrelic.com',
+    [ATTR_RPC_METHOD]: 'getUsers',
+    [ATTR_SERVER_PORT]: 8080,
+    [ATTR_RPC_SERVICE]: 'test.service',
+    [ATTR_RPC_SYSTEM]: 'grpc',
+  }
+
+  const { agent, tracer } = t.nr
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'rpc-test'
+    tracer.startActiveSpan('rpc-outbound', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
+      span.setAttribute(ATTR_GRPC_STATUS_CODE, 0)
+      const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'External/www.newrelic.com/test.service/getUsers')
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'client' }
+        ]
+      })
+
+      const attrs = segment.getAttributes()
+      const spanAttributes = segment.attributes.get(ATTR_DESTINATION.SPAN_EVENT)
+      assert.equal(attrs.procedure, 'getUsers')
+      assert.equal(attrs.component, 'grpc')
+      // attributes.url shouldn't include the query
+      assert.equal(attrs.url, 'grpc://www.newrelic.com:8080/test.service/getUsers')
+      assert.equal(spanAttributes['grpc.statusCode'], 0)
+      assert.equal(spanAttributes.hostname, attributes[ATTR_SERVER_ADDRESS])
+      assert.equal(spanAttributes.port, attributes[ATTR_SERVER_PORT])
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/www.newrelic.com/grpc'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/www.newrelic.com/all',
+        'External/www.newrelic.com/grpc'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
+
+      end()
+    })
+  })
+})
+
+test('rpc external span(legacy attributes) is bridged accordingly', (t, end) => {
+  const attributes = {
+    [ATTR_NET_PEER_NAME]: 'www.newrelic.com',
+    [ATTR_RPC_METHOD]: 'getUsers',
+    [ATTR_NET_PEER_PORT]: 80,
+    [ATTR_RPC_SERVICE]: 'test.service',
+    [ATTR_RPC_SYSTEM]: 'grpc',
+  }
+
+  const { agent, tracer } = t.nr
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'rpc-test'
+    tracer.startActiveSpan('rpc-outbound', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
+      span.setAttribute(ATTR_GRPC_STATUS_CODE, 0)
+      const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'External/www.newrelic.com/test.service/getUsers')
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'client' }
+        ]
+      })
+
+      const attrs = segment.getAttributes()
+      const spanAttributes = segment.attributes.get(ATTR_DESTINATION.SPAN_EVENT)
+      assert.equal(attrs.procedure, 'getUsers')
+      assert.equal(attrs.component, 'grpc')
+      // attributes.url shouldn't include the query
+      assert.equal(attrs.url, 'grpc://www.newrelic.com/test.service/getUsers')
+      assert.equal(spanAttributes['grpc.statusCode'], 0)
+      assert.equal(spanAttributes.hostname, attributes[ATTR_NET_PEER_NAME])
+      assert.equal(spanAttributes.port, attributes[ATTR_NET_PEER_PORT])
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/www.newrelic.com/grpc'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/www.newrelic.com/all',
+        'External/www.newrelic.com/grpc'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
+
+      end()
+    })
+  })
+})
+
+test('fallback client is bridged accordingly', (t, end) => {
+  const { agent, tracer } = t.nr
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'fallback-client-test'
+    tracer.startActiveSpan('unidic-outbound', { kind: otel.SpanKind.CLIENT }, (span) => {
+      const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'External/unknown')
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'client' }
+        ]
+      })
+
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/unknown/http'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/unknown/all',
+        'External/unknown/http'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
       end()
     })
   })
@@ -270,10 +402,10 @@ test('client span(db) is bridge accordingly(statement test)', (t, end) => {
     [ATTR_DB_NAME]: 'test-db',
     [ATTR_DB_SYSTEM]: 'postgresql',
     [ATTR_DB_STATEMENT]: "select foo from test where foo = 'bar';",
-    [ATTR_NET_PEER_PORT]: 5436,
-    [ATTR_NET_PEER_NAME]: '127.0.0.1'
+    [ATTR_SERVER_PORT]: 5436,
+    [ATTR_SERVER_ADDRESS]: '127.0.0.1'
   }
-  const expectedHost = agent.config.getHostnameSafe('127.0.0.1')
+  const expectedHost = agent.config.getHostnameSafe()
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'db-test'
     tracer.startActiveSpan('db-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
@@ -320,11 +452,11 @@ test('client span(db) is bridged accordingly(operation test)', (t, end) => {
   const { agent, tracer } = t.nr
   const attributes = {
     [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUES.REDIS,
-    [ATTR_DB_STATEMENT]: 'hset has random random',
-    [ATTR_NET_PEER_PORT]: 5436,
-    [ATTR_NET_PEER_NAME]: '127.0.0.1'
+    [ATTR_DB_STATEMENT]: 'hset key value',
+    [ATTR_SERVER_PORT]: 5436,
+    [ATTR_SERVER_ADDRESS]: '127.0.0.1'
   }
-  const expectedHost = agent.config.getHostnameSafe('127.0.0.1')
+  const expectedHost = agent.config.getHostnameSafe()
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'db-test'
     tracer.startActiveSpan('db-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
@@ -364,27 +496,128 @@ test('client span(db) is bridged accordingly(operation test)', (t, end) => {
   })
 })
 
+test('client span(db) 1.17 is bridged accordingly(operation test)', (t, end) => {
+  const { agent, tracer } = t.nr
+  const attributes = {
+    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUES.REDIS,
+    [ATTR_DB_STATEMENT]: 'hset key value',
+    [ATTR_NET_PEER_PORT]: 5436,
+    [ATTR_NET_PEER_NAME]: '127.0.0.1'
+  }
+  const expectedHost = agent.config.getHostnameSafe()
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'db-test'
+    tracer.startActiveSpan('db-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
+      const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'Datastore/operation/redis/hset')
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'client' }
+        ]
+      })
+      const attrs = segment.getAttributes()
+      assert.equal(attrs.host, expectedHost)
+      assert.equal(attrs.product, 'redis')
+      assert.equal(attrs.port_path_or_id, 5436)
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['Datastore/operation/redis/hset'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'Datastore/all',
+        'Datastore/allWeb',
+        'Datastore/redis/all',
+        'Datastore/redis/allWeb',
+        'Datastore/operation/redis/hset',
+          `Datastore/instance/redis/${expectedHost}/5436`
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
+
+      end()
+    })
+  })
+})
+
+test('client span(db) 1.17 mongodb is bridged accordingly(operation test)', (t, end) => {
+  const { agent, tracer } = t.nr
+  const attributes = {
+    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUES.MONGODB,
+    [ATTR_DB_STATEMENT]: '{"key":"value"}',
+    [ATTR_DB_NAME]: 'test-db',
+    [ATTR_MONGODB_COLLECTION]: 'test-collection',
+    [ATTR_DB_OPERATION]: 'findOne',
+    [ATTR_NET_PEER_PORT]: 5436,
+    [ATTR_NET_PEER_NAME]: '127.0.0.1'
+  }
+  const expectedHost = agent.config.getHostnameSafe()
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'db-test'
+    tracer.startActiveSpan('db-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
+      const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'Datastore/statement/mongodb/test-collection/findOne')
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'client' }
+        ]
+      })
+      const attrs = segment.getAttributes()
+      assert.equal(attrs.host, expectedHost)
+      assert.equal(attrs.product, 'mongodb')
+      assert.equal(attrs.port_path_or_id, 5436)
+      assert.equal(attrs.database_name, 'test-db')
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['Datastore/statement/mongodb/test-collection/findOne'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'Datastore/all',
+        'Datastore/allWeb',
+        'Datastore/mongodb/all',
+        'Datastore/mongodb/allWeb',
+        'Datastore/operation/mongodb/findOne',
+        'Datastore/statement/mongodb/test-collection/findOne',
+          `Datastore/instance/mongodb/${expectedHost}/5436`
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
+
+      end()
+    })
+  })
+})
+
 test('server span is bridged accordingly', (t, end) => {
   const { agent, tracer } = t.nr
 
   // Required span attributes for incoming HTTP server spans as defined by:
   // https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server-semantic-conventions
   const attributes = {
-    [ATTR_HTTP_URL]: 'http://newrelic.com/foo/bar',
     [ATTR_URL_SCHEME]: 'http',
     [ATTR_SERVER_ADDRESS]: 'newrelic.com',
     [ATTR_SERVER_PORT]: 80,
-    [ATTR_HTTP_METHOD]: 'GET',
+    [ATTR_HTTP_REQUEST_METHOD]: 'GET',
     [ATTR_URL_PATH]: '/foo/bar',
-    [ATTR_HTTP_ROUTE]: '/foo/:param'
+    [ATTR_HTTP_ROUTE]: '/foo/:param',
+    [ATTR_URL_QUERY]: 'key=value&key2=value2'
   }
 
   tracer.startActiveSpan('http-test', { kind: otel.SpanKind.SERVER, attributes }, (span) => {
     const tx = agent.getTransaction()
     assert.equal(tx.traceId, span.spanContext().traceId)
     span.setAttribute(ATTR_HTTP_RES_STATUS_CODE, 200)
-    span.setAttribute(ATTR_HTTP_STATUS_TEXT, 'OK')
     span.end()
+    assert.equal(tx.parsedUrl.href, 'http://newrelic.com/foo/bar?key=value&key2=value2')
     assert.ok(!tx.isDistributedTrace)
     const segment = agent.tracer.getSegment()
     assert.equal(segment.name, 'WebTransaction/WebFrameworkUri//GET/foo/:param')
@@ -406,7 +639,6 @@ test('server span is bridged accordingly', (t, end) => {
     assert.equal(attrs['url.path'], '/foo/bar')
     assert.equal(attrs['url.scheme'], 'http')
     assert.equal(attrs['http.statusCode'], 200)
-    assert.equal(attrs['http.statusText'], 'OK')
 
     const unscopedMetrics = tx.metrics.unscoped
     const expectedMetrics = [
@@ -459,9 +691,8 @@ test('server span(rpc) is bridged accordingly', (t, end) => {
 
     const attrs = segment.getAttributes()
     assert.equal(attrs['server.address'], 'newrelic.com')
-    assert.equal(attrs['rpc.system'], 'foo')
     assert.equal(attrs.component, 'foo')
-    assert.equal(attrs['rpc.method'], 'getData')
+    assert.equal(attrs['rpc.method'], undefined)
     assert.equal(attrs['rpc.service'], 'test.service')
     assert.equal(attrs['url.path'], '/foo/bar')
     assert.equal(attrs['request.method'], 'getData')
@@ -491,12 +722,9 @@ test('server span(fallback) is bridged accordingly', (t, end) => {
 
   const attributes = {
     [ATTR_URL_SCHEME]: 'gopher',
-    [ATTR_SERVER_ADDRESS]: '127.0.0.1',
-    [ATTR_SERVER_PORT]: 3000,
     [ATTR_URL_PATH]: '/foo/bar',
   }
 
-  const expectedHost = agent.config.getHostnameSafe('127.0.0.1')
   tracer.startActiveSpan('http-test', { kind: otel.SpanKind.SERVER, attributes }, (span) => {
     const tx = agent.getTransaction()
     assert.equal(tx.traceId, span.spanContext().traceId)
@@ -515,8 +743,6 @@ test('server span(fallback) is bridged accordingly', (t, end) => {
     assert.equal(segment.name, 'WebTransaction/WebFrameworkUri//unknown')
 
     const attrs = segment.getAttributes()
-    assert.equal(attrs.host, expectedHost)
-    assert.equal(attrs.port, 3000)
     assert.equal(attrs['url.path'], '/foo/bar')
     assert.equal(attrs['url.scheme'], 'gopher')
     assert.equal(attrs.nr_exclusive_duration_millis, duration)
@@ -539,12 +765,12 @@ test('server span(fallback) is bridged accordingly', (t, end) => {
   })
 })
 
-test('producer span is bridged accordingly', (t, end) => {
+test('producer span(legacy) is bridged accordingly', (t, end) => {
   const { agent, tracer } = t.nr
   const attributes = {
     [ATTR_MESSAGING_SYSTEM]: 'messaging-lib',
-    [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_SYSTEM_KIND_VALUES.QUEUE,
-    [ATTR_MESSAGING_DESTINATION]: 'test-queue',
+    [ATTR_MESSAGING_OPERATION_NAME]: MESSAGING_SYSTEM_KIND_VALUES.QUEUE,
+    [ATTR_MESSAGING_DESTINATION_NAME]: 'test-queue',
     [ATTR_SERVER_ADDRESS]: 'localhost',
     [ATTR_SERVER_PORT]: 5672,
     [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: 'myKey',
@@ -553,7 +779,54 @@ test('producer span is bridged accordingly', (t, end) => {
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'prod-test'
 
-    const expectedHost = agent.config.getHostnameSafe('localhost')
+    const expectedHost = agent.config.getHostnameSafe()
+    tracer.startActiveSpan('prod-test', { kind: otel.SpanKind.PRODUCER, attributes }, (span) => {
+      const segment = agent.tracer.getSegment()
+      assert.equal(tx.traceId, span.spanContext().traceId)
+      assert.equal(segment.name, 'MessageBroker/messaging-lib/queue/Produce/Named/test-queue')
+      span.end()
+      const duration = hrTimeToMilliseconds(span.duration)
+      assert.equal(duration, segment.getDurationInMillis())
+      tx.end()
+      assertSpanKind({
+        agent,
+        segments: [
+          { name: segment.name, kind: 'producer' }
+        ]
+      })
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['MessageBroker/messaging-lib/queue/Produce/Named/test-queue'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+      assert.equal(unscopedMetrics['MessageBroker/messaging-lib/queue/Produce/Named/test-queue'].callCount, 1)
+
+      const attrs = segment.getAttributes()
+      assert.equal(attrs.host, expectedHost)
+      assert.equal(attrs.port, 5672)
+      assert.equal(attrs.correlation_id, 'MyConversationId')
+      assert.equal(attrs.routing_key, 'myKey')
+      assert.equal(attrs[ATTR_MESSAGING_SYSTEM], 'messaging-lib')
+      assert.equal(attrs[ATTR_MESSAGING_DESTINATION_NAME], 'test-queue')
+      assert.equal(attrs[ATTR_MESSAGING_OPERATION_NAME], MESSAGING_SYSTEM_KIND_VALUES.QUEUE)
+      end()
+    })
+  })
+})
+
+test('producer span is bridged accordingly', (t, end) => {
+  const { agent, tracer } = t.nr
+  const attributes = {
+    [ATTR_MESSAGING_SYSTEM]: 'messaging-lib',
+    [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_SYSTEM_KIND_VALUES.QUEUE,
+    [ATTR_MESSAGING_DESTINATION]: 'test-queue',
+    [ATTR_NET_PEER_NAME]: 'localhost',
+    [ATTR_NET_PEER_PORT]: 5672,
+    'messaging.rabbitmq.routing_key': 'myKey',
+    'messaging.conversation_id': 'MyConversationId'
+  }
+  helper.runInTransaction(agent, (tx) => {
+    tx.name = 'prod-test'
+
+    const expectedHost = agent.config.getHostnameSafe()
     tracer.startActiveSpan('prod-test', { kind: otel.SpanKind.PRODUCER, attributes }, (span) => {
       const segment = agent.tracer.getSegment()
       assert.equal(tx.traceId, span.spanContext().traceId)
@@ -588,14 +861,13 @@ test('producer span is bridged accordingly', (t, end) => {
 
 test('consumer span is bridged correctly', (t, end) => {
   const { agent, tracer } = t.nr
-  const expectedHost = agent.config.getHostnameSafe('localhost')
+  const expectedHost = agent.config.getHostnameSafe()
   const attributes = {
     [ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [ATTR_MESSAGING_OPERATION]: 'getMessage',
     [ATTR_SERVER_ADDRESS]: '127.0.0.1',
     [ATTR_SERVER_PORT]: '1234',
-    [ATTR_MESSAGING_DESTINATION]: 'work-queue',
-    [ATTR_MESSAGING_DESTINATION_KIND]: 'queue',
+    [ATTR_MESSAGING_DESTINATION_NAME]: 'work-queue',
+    [ATTR_MESSAGING_OPERATION]: 'queue',
     [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: 'test-key'
   }
 
@@ -642,13 +914,12 @@ test('consumer span is bridged correctly', (t, end) => {
 
 test('messaging consumer skips high security attributes', (t, end) => {
   const { agent, tracer } = t.nr
-  const expectedHost = agent.config.getHostnameSafe('localhost')
+  const expectedHost = agent.config.getHostnameSafe()
   const attributes = {
     [ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [ATTR_MESSAGING_OPERATION]: 'getMessage',
     [ATTR_SERVER_ADDRESS]: '127.0.0.1',
     [ATTR_SERVER_PORT]: '1234',
-    [ATTR_MESSAGING_DESTINATION_KIND]: 'queue',
+    [ATTR_MESSAGING_OPERATION]: 'queue',
     [ATTR_MESSAGING_DESTINATION_NAME]: 'test-queue',
     [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: 'test-key'
   }
@@ -670,15 +941,51 @@ test('messaging consumer skips high security attributes', (t, end) => {
   })
 })
 
+test('consumer span(fallback) is bridged accordingly', (t, end) => {
+  const { agent, tracer } = t.nr
+
+  tracer.startActiveSpan('http-test', { kind: otel.SpanKind.CONSUMER }, (span) => {
+    const tx = agent.getTransaction()
+    assert.equal(tx.traceId, span.spanContext().traceId)
+    span.end()
+    assert.ok(!tx.isDistributedTrace)
+    assertSpanKind({
+      agent,
+      segments: [
+        { name: tx.name, kind: 'consumer' }
+      ]
+    })
+    const segment = agent.tracer.getSegment()
+
+    const duration = hrTimeToMilliseconds(span.duration)
+    assert.equal(duration, segment.getDurationInMillis())
+    assert.equal(segment.name, 'OtherTransaction/Message/unknown')
+
+    const attrs = segment.getAttributes()
+    assert.equal(attrs.nr_exclusive_duration_millis, duration)
+
+    const unscopedMetrics = tx.metrics.unscoped
+    const expectedMetrics = [
+      'OtherTransaction/all',
+      'OtherTransaction/Message/all',
+      'OtherTransaction/Message/unknown',
+      'OtherTransactionTotalTime'
+    ]
+    for (const expectedMetric of expectedMetrics) {
+      assert.equal(unscopedMetrics[expectedMetric].callCount, 1, `${expectedMetric} has correct callCount`)
+    }
+    end()
+  })
+})
+
 test('consumer span accepts upstream traceparent/tracestate correctly', (t, end) => {
   const { agent, tracer } = t.nr
 
   const attributes = {
     [ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [ATTR_MESSAGING_OPERATION]: 'getMessage',
     [ATTR_SERVER_ADDRESS]: '127.0.0.1',
     [ATTR_MESSAGING_DESTINATION]: 'work-queue',
-    [ATTR_MESSAGING_DESTINATION_KIND]: 'queue'
+    [ATTR_MESSAGING_OPERATION]: 'queue'
   }
 
   const { ctx, traceId, spanId } = setupDtHeaders(agent)
@@ -764,8 +1071,8 @@ test('Span errors are handled and added on transaction', (t, end) => {
       const errorEvent = {
         name: 'exception',
         attributes: {
-          'exception.message': 'Simulated error',
-          'exception.stacktrace': 'Error stack trace'
+          [EXCEPTION_MESSAGE]: 'Simulated error',
+          [EXCEPTION_STACKTRACE]: 'Error stack trace'
         }
       }
       span.addEvent('exception', errorEvent.attributes)
@@ -774,8 +1081,8 @@ test('Span errors are handled and added on transaction', (t, end) => {
       tx.end()
 
       assert.equal(span.events[0].name, 'exception')
-      assert.equal(span.events[0].attributes['exception.message'], 'Simulated error')
-      assert.equal(span.events[0].attributes['exception.stacktrace'], 'Error stack trace')
+      assert.equal(span.events[0].attributes[EXCEPTION_MESSAGE], 'Simulated error')
+      assert.equal(span.events[0].attributes[EXCEPTION_STACKTRACE], 'Error stack trace')
 
       const errorEvents = agent.errors.eventAggregator.getEvents()
       assert.equal(errorEvents.length, 1)
@@ -797,8 +1104,8 @@ test('Span errors are not added on transaction when span status code is not erro
       const errorEvent = {
         name: 'exception',
         attributes: {
-          'exception.message': 'Simulated error',
-          'exception.stacktrace': 'Error stack trace'
+          [EXCEPTION_MESSAGE]: 'Simulated error',
+          [EXCEPTION_STACKTRACE]: 'Error stack trace'
         }
       }
       span.addEvent('exception', errorEvent.attributes)
@@ -807,8 +1114,8 @@ test('Span errors are not added on transaction when span status code is not erro
       tx.end()
 
       assert.equal(span.events[0].name, 'exception')
-      assert.equal(span.events[0].attributes['exception.message'], 'Simulated error')
-      assert.equal(span.events[0].attributes['exception.stacktrace'], 'Error stack trace')
+      assert.equal(span.events[0].attributes[EXCEPTION_MESSAGE], 'Simulated error')
+      assert.equal(span.events[0].attributes[EXCEPTION_STACKTRACE], 'Error stack trace')
 
       // no transaction errors
       const errorEvents = agent.errors.eventAggregator.getEvents()
@@ -823,20 +1130,34 @@ test('aws dynamodb span has correct entity linking attributes', (t, end) => {
   const attributes = {
     [ATTR_DB_NAME]: 'test-db',
     [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUES.DYNAMODB,
-    [ATTR_DB_STATEMENT]: 'select foo from test-table where foo = "bar"',
-    'aws.region': 'us-east-1',
-    'aws.dynamodb.table_names': ['test-table']
+    [ATTR_DB_OPERATION]: 'getItem',
+    [ATTR_AWS_REGION]: 'us-east-1',
+    [ATTR_DYNAMO_TABLE_NAMES]: ['test-table']
   }
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'db-test'
     tracer.startActiveSpan('db-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
       const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'Datastore/operation/dynamodb/getItem')
       span.end()
       const duration = hrTimeToMilliseconds(span.duration)
       assert.equal(duration, segment.getDurationInMillis())
       tx.end()
       const attrs = segment.getAttributes()
       assert.equal(attrs['cloud.resource_id'], 'arn:aws:dynamodb:us-east-1:123456789123:table/test-table')
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['Datastore/operation/dynamodb/getItem'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'Datastore/all',
+        'Datastore/allWeb',
+        'Datastore/dynamodb/all',
+        'Datastore/dynamodb/allWeb',
+        'Datastore/operation/dynamodb/getItem',
+        'Datastore/instance/dynamodb/dynamodb.us-east-1.amazonaws.com/443'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
       end()
     })
   })
@@ -846,14 +1167,17 @@ test('aws lambda span has correct entity linking attributes', (t, end) => {
   const { agent, tracer } = t.nr
   // see: https://github.com/open-telemetry/opentelemetry-specification/blob/v1.7.0/specification/trace/semantic_conventions/faas.md#example "Span A"
   const attributes = {
-    'faas.invoked_name': 'test-function',
+    [ATTR_AWS_REGION]: 'us-east-1',
+    [ATTR_RPC_SYSTEM]: 'aws-api',
+    [ATTR_FAAS_INVOKED_NAME]: 'test-function',
     [ATTR_FAAS_INVOKED_PROVIDER]: 'aws',
-    'faas.invoked_region': 'us-east-1'
+    [ATTR_FAAS_INVOKED_REGION]: 'us-east-1'
   }
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'lambda-test'
     tracer.startActiveSpan('lambda-test', { kind: otel.SpanKind.CLIENT, attributes }, (span) => {
       const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'External/lambda.us-east-1.amazonaws.com')
       span.end()
       const duration = hrTimeToMilliseconds(span.duration)
       assert.equal(duration, segment.getDurationInMillis())
@@ -861,6 +1185,17 @@ test('aws lambda span has correct entity linking attributes', (t, end) => {
       const attrs = segment.getAttributes()
       assert.equal(attrs['cloud.resource_id'], 'arn:aws:lambda:us-east-1:123456789123:function:test-function')
       assert.equal(attrs['cloud.platform'], 'aws_lambda')
+      const metrics = tx.metrics.scoped[tx.name]
+      assert.equal(metrics['External/lambda.us-east-1.amazonaws.com/http'].callCount, 1)
+      const unscopedMetrics = tx.metrics.unscoped
+        ;[
+        'External/all',
+        'External/allWeb',
+        'External/lambda.us-east-1.amazonaws.com/all',
+        'External/lambda.us-east-1.amazonaws.com/http'
+      ].forEach((expectedMetric) => {
+        assert.equal(unscopedMetrics[expectedMetric].callCount, 1)
+      })
       end()
     })
   })
@@ -870,21 +1205,25 @@ test('aws sqs span has correct entity linking attributes', (t, end) => {
   const { agent, tracer } = t.nr
   // see: https://github.com/open-telemetry/opentelemetry-js-contrib/blob/b520d048465d9b3dfdf275976010c989d2a78a2c/plugins/node/opentelemetry-instrumentation-aws-sdk/src/services/sqs.ts#L62
   const attributes = {
-    'rpc.service': 'sqs',
-    [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_SYSTEM_KIND_VALUES.QUEUE,
+    [ATTR_RPC_SERVICE]: 'sqs',
+    [ATTR_MESSAGING_SYSTEM]: 'aws.sqs',
+    [ATTR_MESSAGING_OPERATION]: MESSAGING_SYSTEM_KIND_VALUES.QUEUE,
     [ATTR_MESSAGING_DESTINATION]: 'test-queue',
-    'aws.region': 'us-east-1'
+    'messaging.url': 'https://sqs.us-east-1.amazonaws.com/123456789123/test-queue',
+    'messaging.message_id': 'test-message-id',
+    [ATTR_AWS_REGION]: 'us-east-1'
   }
   helper.runInTransaction(agent, (tx) => {
     tx.name = 'sqs-test'
     tracer.startActiveSpan('sqs-test', { kind: otel.SpanKind.PRODUCER, attributes }, (span) => {
       const segment = agent.tracer.getSegment()
+      assert.equal(segment.name, 'MessageBroker/aws.sqs/queue/Produce/Named/test-queue')
       span.end()
       const duration = hrTimeToMilliseconds(span.duration)
       assert.equal(duration, segment.getDurationInMillis())
       tx.end()
       const attrs = segment.getAttributes()
-      assert.equal(attrs['cloud.account.id'], agent.config.cloud.aws.account_id)
+      assert.equal(attrs['cloud.account.id'], '123456789123')
       assert.equal(attrs['cloud.region'], 'us-east-1')
       assert.equal(attrs['messaging.destination.name'], 'test-queue')
       assert.equal(attrs['messaging.system'], 'aws_sqs')

@@ -202,12 +202,23 @@
         "node": ">=18.0"
       },
       "dependencies": {
-        "@aws-sdk/client-bedrock-runtime": ">=3.474.0"
+        "@aws-sdk/client-bedrock-runtime": ">=3.474.0 <3.798.0"
       },
       "files": [
         "bedrock-chat-completions.test.js",
         "bedrock-embeddings.test.js",
         "bedrock-negative-tests.test.js"
+      ]
+    },
+      {
+      "engines": {
+        "node": ">=18.0"
+      },
+      "dependencies": {
+        "@aws-sdk/client-bedrock-runtime": ">=3.587.0 <3.798.0"
+      },
+      "files": [
+        "bedrock-converse-api.test.js"
       ]
     }
   ],

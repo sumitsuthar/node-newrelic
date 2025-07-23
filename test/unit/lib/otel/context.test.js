@@ -12,8 +12,9 @@ const { otelSynthesis } = require('../../../../lib/symbols')
 
 test.beforeEach((ctx) => {
   const agent = helper.instrumentMockedAgent({
-    feature_flag: {
-      opentelemetry_bridge: true
+    opentelemetry_bridge: {
+      enabled: true,
+      traces: { enabled: true }
     }
   })
   ctx.nr = { agent }
@@ -80,9 +81,17 @@ test('should add transaction and trace root to otel ctx', (t) => {
   const newContext = ctx.enterTransaction(transaction)
   const fakeSpan = newContext.getValue(agent.otelSpanKey)
   assert.deepEqual(fakeSpan, {
-    segment: transaction.trace.root,
-    transaction
+    segmentId: transaction.trace.root.id,
+    traceId: transaction.traceId
   })
+})
+
+test('should not add transaction and trace root to otel ctx when undefined', (t) => {
+  const { agent } = t.nr
+  const ctx = otel.context.active()
+  const newContext = ctx.enterTransaction()
+  const fakeSpan = newContext.getValue(agent.otelSpanKey)
+  assert.equal(fakeSpan, undefined)
 })
 
 test('should add segment to otel ctx', (t) => {
@@ -93,7 +102,37 @@ test('should add segment to otel ctx', (t) => {
   const newContext = ctx.enterSegment({ segment })
   const fakeSpan = newContext.getValue(agent.otelSpanKey)
   assert.deepEqual(fakeSpan, {
-    segment,
-    transaction: newContext.transaction
+    segmentId: segment.id,
+    traceId: newContext.transaction.traceId
   })
+})
+
+test('should not error if missing segment', (t) => {
+  const { agent } = t.nr
+  const ctx = otel.context.active()
+  ctx._transaction = { agent, traceId: 'traceId' }
+  const newContext = ctx.enterSegment({})
+  assert.ok(newContext)
+})
+
+test('should add segment to otel when both segment and transaction are passed in', (t) => {
+  const { agent } = t.nr
+  const ctx = otel.context.active()
+  const transaction = { agent, traceId: 'traceId' }
+  const segment = { id: 'segmentId' }
+  const newContext = ctx.enterSegment({ segment, transaction })
+  const fakeSpan = newContext.getValue(agent.otelSpanKey)
+  assert.deepEqual(fakeSpan, {
+    segmentId: segment.id,
+    traceId: newContext.transaction.traceId
+  })
+})
+
+test('should not set fake span if transaction.agent.otelSpanKey is null', (t) => {
+  const { agent } = t.nr
+  const ctx = otel.context.active()
+  const segment = { id: 'segmentId' }
+  const newContext = ctx.enterSegment({ segment })
+  const fakeSpan = newContext.getValue(agent.otelSpanKey)
+  assert.equal(fakeSpan, undefined)
 })
