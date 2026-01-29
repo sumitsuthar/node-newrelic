@@ -39,10 +39,20 @@ test.afterEach((ctx) => {
   removeMatchedModules(/custom-tool\.js$/)
 })
 
-test('should log tracking metrics', function(t) {
-  const { agent } = t.nr
+test('should log tracking metrics', function(t, end) {
+  t.plan(5)
+  const { agent, tool, input } = t.nr
   const { version } = require('@langchain/core/package.json')
-  assertPackageMetrics({ agent, pkg: '@langchain/core', version })
+  helper.runInTransaction(agent, async () => {
+    await tool.call(input)
+    assertPackageMetrics({
+      agent,
+      pkg: '@langchain/core',
+      version,
+      subscriberType: true
+    }, { assert: t.assert })
+    end()
+  })
 })
 
 test('should create span on successful tools create', (t, end) => {
@@ -67,7 +77,7 @@ test('should increment tracking metric for each tool event', (t, end) => {
     const metrics = agent.metrics.getOrCreateMetric(
       `Supportability/Nodejs/ML/LangChain/${pkgVersion}`
     )
-    assert.equal(metrics.callCount > 0, true)
+    assert.equal(metrics.callCount, 1)
 
     tx.end()
     end()

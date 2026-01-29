@@ -49,9 +49,19 @@ function runStreamingEnabledTests(config) {
   } = config
 
   return async (t) => {
-    await t.test('should log tracking metrics', function(t) {
-      const { agent, langchainCoreVersion } = t.nr
-      assertPackageMetrics({ agent, pkg: '@langchain/core', version: langchainCoreVersion })
+    await t.test('should log tracking metrics', function(t, end) {
+      t.plan(5)
+      const { agent, langchainCoreVersion, prompt, model } = t.nr
+      helper.runInTransaction(agent, async () => {
+        await prompt.pipe(model).stream(inputData)
+        assertPackageMetrics({
+          agent,
+          pkg: '@langchain/core',
+          version: langchainCoreVersion,
+          subscriberType: true
+        }, { assert: t.assert })
+        end()
+      })
     })
 
     await t.test('should create langchain events for every stream call', (t, end) => {
@@ -104,7 +114,7 @@ function runStreamingEnabledTests(config) {
           const metrics = agent.metrics.getOrCreateMetric(
             `Supportability/Nodejs/ML/LangChain/${langchainCoreVersion}`
           )
-          assert.equal(metrics.callCount > 0, true)
+          assert.equal(metrics.callCount, 1)
 
           tx.end()
           end()
@@ -230,8 +240,9 @@ function runStreamingEnabledTests(config) {
           const stream = await chain.stream(input, options)
           let content = ''
           for await (const chunk of stream) {
-            content += chunk
+            content += chunk?.[0]
           }
+          assert(content.length > 0, 'there should be content in the response')
 
           const events = agent.customEventAggregator.events.toArray()
 
@@ -650,7 +661,7 @@ function runStreamingDisabledTest(config) {
           const metrics = agent.metrics.getOrCreateMetric(
             `Supportability/Nodejs/ML/LangChain/${langchainCoreVersion}`
           )
-          assert.equal(metrics.callCount > 0, true)
+          assert.equal(metrics.callCount, 1)
           const attributes = tx.trace.attributes.get(DESTINATIONS.TRANS_EVENT)
           assert.equal(attributes.llm, true)
           const streamingDisabled = agent.metrics.getOrCreateMetric(
