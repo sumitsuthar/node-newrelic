@@ -69,6 +69,20 @@ test('should create span on successful tools create', (t, end) => {
   })
 })
 
+test('should not append previous tool name to span on successful tools create', (t, end) => {
+  const { agent, tool, input } = t.nr
+  helper.runInTransaction(agent, async (tx) => {
+    const [result, result2] = await Promise.all([tool.call(input), tool.call(input)])
+    assert.ok(result)
+    assert.ok(result2)
+    assertSegments(tx.trace, tx.trace.root, ['Llm/tool/LangChain/node-agent-test-tool', 'Llm/tool/LangChain/node-agent-test-tool'], {
+      exact: true
+    })
+    tx.end()
+    end()
+  })
+})
+
 test('should increment tracking metric for each tool event', (t, end) => {
   const { tool, agent, input } = t.nr
   helper.runInTransaction(agent, async (tx) => {
@@ -254,6 +268,24 @@ test('should properly merge tags from instance and params', (t, end) => {
     assert.ok(tags.includes('shared'))
     // should only have one 'shared' tag
     assert.equal(tags.filter((t) => t === 'shared').length, 1)
+
+    tx.end()
+    end()
+  })
+})
+
+test('should add subcomponent attribute to segment', (t, end) => {
+  const { agent, tool, input } = t.nr
+  helper.runInTransaction(agent, async (tx) => {
+    await tool.call(input)
+
+    const [segment] = tx.trace.getChildren(tx.trace.root.id)
+    const attributes = segment.attributes.get(DESTINATIONS.SPAN_EVENT)
+    assert.ok(attributes.subcomponent, 'subcomponent attribute should exist')
+
+    const attr = JSON.parse(attributes.subcomponent)
+    assert.equal(attr.type, 'APM-AI_TOOL', 'subcomponent type should be APM-AI_TOOL')
+    assert.equal(attr.name, tool.name, 'subcomponent name should match tool name')
 
     tx.end()
     end()

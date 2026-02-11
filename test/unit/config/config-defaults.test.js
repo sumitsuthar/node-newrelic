@@ -346,14 +346,22 @@ test('with default properties', async (t) => {
     })
   })
 
+  await t.test('profiling defaults', () => {
+    assert.equal(configuration.profiling.enabled, false)
+    assert.equal(configuration.profiling.sample_interval_ms, 100)
+    assert.deepEqual(configuration.profiling.include, ['cpu', 'heap'])
+    assert.equal(configuration.profiling.cpu.report_interval_ms, 0)
+    assert.equal(configuration.profiling.heap.report_interval_ms, 0)
+  })
+
   await t.test('opentelemetry', () => {
     const otel = configuration.opentelemetry
     assert.equal(otel.enabled, false)
-    assert.equal(otel.traces.enabled, false)
-    assert.equal(otel.logs.enabled, false)
-    assert.equal(otel.metrics.enabled, false)
-    assert.equal(otel.metrics.exportInterval, 60_000)
-    assert.equal(otel.metrics.exportTimeout, 30_000)
+    assert.equal(otel.traces.enabled, true)
+    assert.equal(otel.logs.enabled, true)
+    assert.equal(otel.metrics.enabled, true)
+    assert.equal(otel.metrics.export_interval, 60_000)
+    assert.equal(otel.metrics.export_timeout, 10_000)
   })
 })
 

@@ -89,8 +89,13 @@ function runStreamingEnabledTests(config) {
           const [, chainEvent] = event
           return chainEvent.vendor === 'langchain'
         })
-
         assert.equal(langchainEvents.length, 3, 'should create 3 langchain events')
+
+        const requestMsg = langchainEvents.filter((msg) => msg[1].is_response === false)[0]
+        assert.equal(requestMsg[0].timestamp, requestMsg[1].timestamp, 'time added to event aggregator should equal `timestamp` property')
+
+        const chatSummary = langchainEvents.filter(([{ type }]) => type === 'LlmChatCompletionSummary')[0]
+        assert.equal(chatSummary[0].timestamp, chatSummary[1].timestamp, 'time added to event aggregator should equal `timestamp` property')
 
         tx.end()
         end()
@@ -680,10 +685,10 @@ function runStreamingDisabledTest(config) {
     )
 
     await t.test(
-      'should not create segment when `ai_monitoring.streaming.enabled` is false',
+      'should still create segment when `ai_monitoring.streaming.enabled` is false',
       (t, end) => {
         const { agent, prompt, outputParser, model } = t.nr
-        agent.config.ai_monitoring.enabled = false
+        agent.config.ai_monitoring.streaming.enabled = false
 
         helper.runInTransaction(agent, async (tx) => {
           const input = inputData
@@ -695,7 +700,7 @@ function runStreamingDisabledTest(config) {
           }
 
           const segment = findSegment(tx.trace, tx.trace.root, 'Llm/chain/LangChain/stream')
-          assert.equal(segment, undefined, 'should not create Llm/chain/LangChain/stream segment when ai_monitoring is disabled')
+          assert.ok(segment, 'should still create Llm/chain/LangChain/stream segment when ai_monitoring.streaming is disabled')
 
           tx.end()
           end()

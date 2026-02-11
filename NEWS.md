@@ -1,3 +1,61 @@
+### v13.12.0 (2026-02-02)
+
+#### Features
+
+* Added instrumentation support for `@langchain/langgraph` ([#3645](https://github.com/newrelic/node-newrelic/pull/3645)) ([f339675](https://github.com/newrelic/node-newrelic/commit/f3396754fb182a3f0af09488a8abb1981b6f3e3f))
+* Added `timestamp` to `LlmChatCompletionSummary` messages
+    * Added `timestamp` to AWS Bedrock `LlmChatCompletionSummary` ([#3702](https://github.com/newrelic/node-newrelic/pull/3702)) ([430d1dd](https://github.com/newrelic/node-newrelic/commit/430d1dd5ef847203045486a054142df3a02c7c1c))
+    * Added `timestamp` to Google Gen AI `LlmChatCompletionSummary` ([#3690](https://github.com/newrelic/node-newrelic/pull/3690)) ([7748e26](https://github.com/newrelic/node-newrelic/commit/7748e26aceb7b050b13dc686c852513026f043ac))
+    * Added `timestamp` to LangChain `LlmChatCompletionSummary` ([#3701](https://github.com/newrelic/node-newrelic/pull/3701)) ([7472118](https://github.com/newrelic/node-newrelic/commit/747211814396e4bf52dc63d249c0ec045b35457a))
+* Added compact mode for span links ([#3681](https://github.com/newrelic/node-newrelic/pull/3681)) ([6ff6961](https://github.com/newrelic/node-newrelic/commit/6ff6961e6b46feb14638da97a95d0891a0d88645))
+
+#### Bug fixes
+
+* Updated langchain tool instrumentation to properly redefine the segment name on every call ([#3691](https://github.com/newrelic/node-newrelic/pull/3691)) ([4df6068](https://github.com/newrelic/node-newrelic/commit/4df6068d23b5da276486bd3d3f0c3af4b748c4a8))
+
+#### Documentation
+
+* Updated compatibility report ([#3699](https://github.com/newrelic/node-newrelic/pull/3699)) ([40b6b81](https://github.com/newrelic/node-newrelic/commit/40b6b813e7b6490c2e866a33cb1a7492b35d2a36))
+
+### v13.11.0 (2026-01-29)
+
+#### Features
+
+* Added `timestamp` to AIM `LlmChatCompletionMessage` messages
+    * Added `timestamp` to AWS Bedrock `LlmChatCompletionMessage` ([#3685](https://github.com/newrelic/node-newrelic/pull/3685)) ([ea297c8](https://github.com/newrelic/node-newrelic/commit/ea297c86772c1ae377a16e636db8bbcf53ef1547))
+    * Added `timestamp` to Google Gen AI `LlmChatCompletionMessage` ([#3686](https://github.com/newrelic/node-newrelic/pull/3686)) ([f4dd09e](https://github.com/newrelic/node-newrelic/commit/f4dd09ec332c47396277f6aaeff2f6f15daad97a))
+    * Added `timestamp` to LangChain input `LlmChatCompletionMessage` ([#3658](https://github.com/newrelic/node-newrelic/pull/3658)) ([0bce235](https://github.com/newrelic/node-newrelic/commit/0bce235ce02f772bc089bf947afadf312c735c1b))
+* Added timestamp to OpenAI `LlmChatCompletionSummary` ([#3689](https://github.com/newrelic/node-newrelic/pull/3689)) ([55b0310](https://github.com/newrelic/node-newrelic/commit/55b03100323eefb3578816cff69f2b919e4b7bdd))
+* Additional support for partial granularity traces (Not available for production use)
+    * Added essential tracing mode for span links ([#3670](https://github.com/newrelic/node-newrelic/pull/3670)) ([83dfb84](https://github.com/newrelic/node-newrelic/commit/83dfb84b842e0245392425ce61e92a2789fcaf06))
+    * Updated `Supportability/Nodejs/PartialGranularity/NrIds/Dropped` metric to only keep track of spans that got dropped when `nr.ids` execeeded 63 spans. ([#3684](https://github.com/newrelic/node-newrelic/pull/3684)) ([9797cf3](https://github.com/newrelic/node-newrelic/commit/9797cf38aa2808b29da9623158edb221b1819548))
+
+#### Bug fixes
+
+* Added defensive code in `lib/subscribers/middleware-wrapper.js` to prevent crash when attempting to associate an error on an incoming http request ([#3697](https://github.com/newrelic/node-newrelic/pull/3697)) ([658e78b](https://github.com/newrelic/node-newrelic/commit/658e78ba564eae996d790bb3334bda6847c7e2bd))
+* Updated `pg` instrumentation to properly capture the TraceSegment duration for promise based queries ([#3695](https://github.com/newrelic/node-newrelic/pull/3695)) ([0051697](https://github.com/newrelic/node-newrelic/commit/005169776a3f3fe9d988174857b3c96e6131aea3))
+
+#### Code refactoring
+
+* Added AIM abstract subscribers and updated all AIM subscribers to use them ([#3676](https://github.com/newrelic/node-newrelic/pull/3676)) ([08cd38b](https://github.com/newrelic/node-newrelic/commit/08cd38b5b34b4f1a2636ccc12d359484af6b3e83))
+
+#### Documentation
+
+* Updated compatibility report ([#3675](https://github.com/newrelic/node-newrelic/pull/3675)) ([cc898f4](https://github.com/newrelic/node-newrelic/commit/cc898f4d8b0f520e120f330ff9e90fe7baaebedc))
+
+#### Miscellaneous chores
+
+* Added TimedEvent limit of 100 ([#3683](https://github.com/newrelic/node-newrelic/pull/3683)) ([0d595d8](https://github.com/newrelic/node-newrelic/commit/0d595d8579b5a58e49908bc24321ce7b526ddff2))
+* Added supportability metrics `Supportability/Nodejs/SpanEvent/<Links|Events>/Dropped` when limit of 100 is exceeded ([#3688](https://github.com/newrelic/node-newrelic/pull/3688)) ([a247d31](https://github.com/newrelic/node-newrelic/commit/a247d31fc9c24752be50a73d4ddfc7a088a68ce6))
+* Removed eslint disable next line for `sonarjs/no-dead-store` ([#3692](https://github.com/newrelic/node-newrelic/pull/3692)) ([593fa15](https://github.com/newrelic/node-newrelic/commit/593fa15a033437b95fe375cf6034b8453c7d2b36))
+
+#### Continuous Integration
+* Fixed CI issue when sec-agent present ([#3677](https://github.com/newrelic/node-newrelic/pull/3677)) ([23da654](https://github.com/newrelic/node-newrelic/commit/23da6547e72f49bf798046330e8cfa74a0b4d2af))
+
+#### Tests
+
+* Assert that span events drop in partial traces ([#3680](https://github.com/newrelic/node-newrelic/pull/3680)) ([25e3781](https://github.com/newrelic/node-newrelic/commit/25e3781098343b9ca9e4aed0cd5c9e0f94266926))
+
 ### v13.10.0 (2026-01-20)
 
 #### Features
