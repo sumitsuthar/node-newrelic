@@ -14,6 +14,7 @@ const helper = require('../../lib/agent_helper')
 
 const { ERR_CODE, ERR_MSG, HALT_SERVER_ERR_MSG, HALT_CODE } = require('./constants.cjs')
 const {
+  assertContext,
   assertError,
   assertExternalSegment,
   assertMetricsNotExisting,
@@ -27,7 +28,7 @@ test.beforeEach(async (ctx) => {
   ctx.nr.agent = helper.instrumentMockedAgent()
   ctx.nr.grpc = require('@grpc/grpc-js')
 
-  const { port, proto, server } = await createServer(ctx.nr.grpc)
+  const { port, proto, server } = await createServer(ctx.nr.grpc, ctx.nr.agent)
   ctx.nr.port = port
   ctx.nr.proto = proto
   ctx.nr.server = server
@@ -57,7 +58,8 @@ test('should track client streaming requests as an external when in a transactio
     const response = await makeClientStreamingRequest({
       client,
       fnName: 'sayHelloClientStream',
-      payload: names
+      payload: names,
+      agent
     })
     assert.ok(response, 'response exists')
     assert.equal(
@@ -65,6 +67,7 @@ test('should track client streaming requests as an external when in a transactio
       `Hello ${names.map(({ name }) => name).join(', ')}`,
       'response message is correct'
     )
+    assertContext({ response, key: 'client_cb', txId: tx.id, segmentName: 'helloworld.Greeter/SayHelloClientStream', clientRequest: true })
     tx.end()
   })
 })

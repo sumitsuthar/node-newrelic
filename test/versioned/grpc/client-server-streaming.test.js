@@ -14,6 +14,7 @@ const helper = require('../../lib/agent_helper')
 
 const { ERR_CODE, ERR_MSG } = require('./constants.cjs')
 const {
+  assertContext,
   assertError,
   assertExternalSegment,
   assertMetricsNotExisting,
@@ -27,7 +28,7 @@ test.beforeEach(async (ctx) => {
   ctx.nr.agent = helper.instrumentMockedAgent()
   ctx.nr.grpc = require('@grpc/grpc-js')
 
-  const { port, proto, server } = await createServer(ctx.nr.grpc)
+  const { port, proto, server } = await createServer(ctx.nr.grpc, ctx.nr.agent)
   ctx.nr.port = port
   ctx.nr.proto = proto
   ctx.nr.server = server
@@ -57,11 +58,17 @@ test('should track server streaming requests as an external when in a transactio
     const responses = await makeServerStreamingRequest({
       client,
       fnName: 'sayHelloServerStream',
-      payload: { name: names }
+      payload: { name: names },
+      agent
     })
+
     names.forEach((name, i) => {
-      assert.equal(responses[i], `Hello ${name}`, 'response stream message should be correct')
+      const response = responses[i]
+      assert.equal(response.message, `Hello ${name}`, 'response stream message should be correct')
+      assertContext({ response, key: 'client_stream_data', txId: tx.id, segmentName: 'helloworld.Greeter/SayHelloServerStream', clientRequest: true })
     })
+    const lastResponse = responses.at(-1)
+    assertContext({ response: lastResponse, key: 'client_stream_end', txId: tx.id, segmentName: 'helloworld.Greeter/SayHelloServerStream', clientRequest: true })
     tx.end()
   })
 })
@@ -116,7 +123,7 @@ test('should not track server streaming requests outside of a transaction', asyn
     payload
   })
   assert.ok(responses.length, 1)
-  assert.equal(responses[0], 'Hello New Relic', 'response message is correct')
+  assert.equal(responses[0].message, 'Hello New Relic', 'response message is correct')
   assertMetricsNotExisting({ agent, port })
 })
 

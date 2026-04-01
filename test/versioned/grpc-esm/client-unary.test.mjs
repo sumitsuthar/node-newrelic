@@ -16,6 +16,7 @@ const { ERR_CODE, ERR_MSG } = constants
 
 import util from '../grpc/util.cjs'
 const {
+  assertContext,
   assertError,
   assertExternalSegment,
   assertMetricsNotExisting,
@@ -33,7 +34,7 @@ const {
 // be unregistered before a test ends, or they will interfere with other tests.
 const agent = helper.instrumentMockedAgent()
 const grpc = await import('@grpc/grpc-js')
-const { port, proto, server } = await createServer(grpc)
+const { port, proto, server } = await createServer(grpc, agent)
 const client = getClient(grpc, proto, port)
 
 test.afterEach(() => {
@@ -67,12 +68,14 @@ test('should track unary client requests as an external when in a transaction', 
     tx.name = 'clientTransaction'
 
     const response = await makeUnaryRequest({
+      agent,
       client,
       fnName: 'sayHello',
       payload: { name: 'New Relic' }
     })
     assert.ok(response, 'response exists')
     assert.equal(response.message, 'Hello New Relic', 'response message is correct')
+    assertContext({ response, key: 'client_cb', txId: tx.id, segmentName: 'helloworld.Greeter/SayHello', clientRequest: true })
     tx.end()
   })
 })

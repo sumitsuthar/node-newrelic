@@ -15,6 +15,7 @@ const helper = require('../../lib/agent_helper')
 
 const { ERR_CODE, ERR_MSG } = require('./constants.cjs')
 const {
+  assertContext,
   assertError,
   assertExternalSegment,
   assertMetricsNotExisting,
@@ -28,7 +29,7 @@ test.beforeEach(async (ctx) => {
   ctx.nr.agent = helper.instrumentMockedAgent()
   ctx.nr.grpc = require('@grpc/grpc-js')
 
-  const { port, proto, server } = await createServer(ctx.nr.grpc)
+  const { port, proto, server } = await createServer(ctx.nr.grpc, ctx.nr.agent)
   ctx.nr.port = port
   ctx.nr.proto = proto
   ctx.nr.server = server
@@ -58,11 +59,18 @@ test('should track bidirectional streaming requests as an external when in a tra
     const responses = await makeBidiStreamingRequest({
       client,
       fnName: 'sayHelloBidiStream',
-      payload: names
+      payload: names,
+      agent
     })
+
     names.forEach(({ name }, i) => {
-      assert.equal(responses[i], `Hello ${name}`, 'response stream message should be correct')
+      const response = responses[i]
+      assert.equal(response.message, `Hello ${name}`, 'response stream message should be correct')
+      assertContext({ response, key: 'client_stream_data', txId: tx.id, segmentName: 'helloworld.Greeter/SayHelloBidiStream', clientRequest: true })
     })
+
+    const lastResponse = responses.at(-1)
+    assertContext({ response: lastResponse, key: 'client_stream_end', txId: tx.id, segmentName: 'helloworld.Greeter/SayHelloBidiStream', clientRequest: true })
 
     tx.end()
   })
@@ -129,7 +137,7 @@ test('should not track external bidi streaming client requests outside of a tran
     payload
   })
   payload.forEach(({ name }, i) => {
-    plan.equal(responses[i], `Hello ${name}`, 'response stream message should be correct')
+    plan.equal(responses[i].message, `Hello ${name}`, 'response stream message should be correct')
   })
   assertMetricsNotExisting({ agent, port }, { assert: plan })
 

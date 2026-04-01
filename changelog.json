@@ -2,6 +2,78 @@
   "repository": "newrelic/node-newrelic",
   "entries": [
     {
+      "version": "13.18.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Instrumented grpc server stream to bind async context to stream event handlers"
+        ]
+      }
+    },
+    {
+      "version": "13.17.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Added support for Continuous Profiling"
+        ]
+      }
+    },
+    {
+      "version": "13.16.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `@apm-js-collab/tracing-hooks` to `0.5.0`, to allow instrumentation on windows environments."
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "13.15.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Added `time_to_first_token` for AWS Bedrock",
+          "Added `time_to_first_token` for Google Gen AI",
+          "Added `time_to_first_token` for OpenAI",
+          "Added `time_to_first_token` for `LlmChatCompletionSummary`"
+        ]
+      }
+    },
+    {
+      "version": "13.14.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `@google/genai` subscriber to handle the new `embedContentInternal` method in 1.42.0"
+        ],
+        "features": [
+          "Added functionality to ingest logs from Azure Functions App automatically",
+          "Added support for error causes",
+          "Added ability to delay the start of the Profiler and run for n milliseconds before shutting down."
+        ]
+      }
+    },
+    {
+      "version": "13.13.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Added `delay` and `duration` to profiling config",
+          "Updated the profiling config properties",
+          "Added ProfilingManager class, used to orchestrate profilers",
+          "Updated `RemoteMethod` to handle sending `pprof_data` through the collector",
+          "Added `ProfilingAggregator` that will be used to collect and send `pprof_data` telemetry",
+          "Added profiling configuration"
+        ]
+      }
+    },
+    {
       "version": "13.12.0",
       "changes": {
         "security": [],

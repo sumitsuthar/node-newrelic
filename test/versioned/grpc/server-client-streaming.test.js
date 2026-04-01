@@ -7,6 +7,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert')
+const { once } = require('node:events')
 
 const { removeModules } = require('../../lib/cache-buster')
 const { notHas } = require('../../lib/custom-assertions')
@@ -17,6 +18,7 @@ const DESTINATION = DESTINATIONS.TRANS_EVENT | DESTINATIONS.ERROR_EVENT
 
 const { ERR_CODE, ERR_SERVER_MSG, HALT_CODE, HALT_GRPC_SERVER_MSG } = require('./constants.cjs')
 const {
+  assertContext,
   assertError,
   assertDistributedTracing,
   assertServerMetrics,
@@ -32,7 +34,7 @@ test.beforeEach(async (ctx) => {
   ctx.nr.agent = helper.instrumentMockedAgent()
   ctx.nr.grpc = require('@grpc/grpc-js')
 
-  const { port, proto, server } = await createServer(ctx.nr.grpc)
+  const { port, proto, server } = await createServer(ctx.nr.grpc, ctx.nr.agent)
   ctx.nr.port = port
   ctx.nr.proto = proto
   ctx.nr.server = server
@@ -48,23 +50,29 @@ test.afterEach((ctx) => {
 
 test('should track client streaming requests', async (t) => {
   const { agent, client } = t.nr
-  let transaction
-  agent.on('transactionFinished', (tx) => {
-    transaction = tx
-  })
-
   const names = [{ name: 'Bob' }, { name: 'Jordi' }, { name: 'Corey' }]
-  const response = await makeClientStreamingRequest({
-    client,
-    fnName: 'sayHelloClientStream',
-    payload: names
-  })
-  assert.ok(response, 'response exists')
+  const [request, trace] = await Promise.allSettled([
+    makeClientStreamingRequest({
+      client,
+      fnName: 'sayHelloClientStream',
+      payload: names,
+      agent
+    }),
+    once(agent, 'transactionFinished')
+  ])
+  assert.ok(request.value, 'got a response')
+  const response = request.value
+  assert.ok(trace.value, 'transaction exists')
+  const [transaction] = trace.value
+
   assert.equal(
     response.message,
     `Hello ${names.map(({ name }) => name).join(', ')}`,
     'response message is correct'
   )
+  assertContext({ response, key: 'cb', txId: transaction.id, segmentName: '/helloworld.Greeter/SayHelloClientStream' })
+  assertContext({ response, key: 'stream_data', txId: transaction.id, segmentName: '/helloworld.Greeter/SayHelloClientStream' })
+  assertContext({ response, key: 'stream_end', txId: transaction.id, segmentName: '/helloworld.Greeter/SayHelloClientStream' })
   assertServerTransaction({ transaction, fnName: 'SayHelloClientStream' })
   assertServerMetrics({ agentMetrics: agent.metrics._metrics, fnName: 'SayHelloClientStream' })
 })

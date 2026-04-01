@@ -1,3 +1,197 @@
+### v13.18.0 (2026-03-30)
+
+#### Features
+
+* Instrumented grpc server stream to bind async context to stream event handlers ([#3855](https://github.com/newrelic/node-newrelic/pull/3855)) ([92c70a8](https://github.com/newrelic/node-newrelic/commit/92c70a8c81c7bf26f63cf3f5b94d993ebc88bf51))
+
+#### Code refactoring
+
+* Refactored `when` instrumentation to subscribe to events emitted ([#3866](https://github.com/newrelic/node-newrelic/pull/3866)) ([1b55c5a](https://github.com/newrelic/node-newrelic/commit/1b55c5ae5df8eb8d20d499e31b80014acd9b7833))
+* Refactored `memcached` instrumentation to subscribe to events emitted ([#3849](https://github.com/newrelic/node-newrelic/pull/3849)) ([915b320](https://github.com/newrelic/node-newrelic/commit/915b320e1b01944fe89754305e146c0c69dca0c6))
+* Refactored `bluebird` instrumentation to subscribe to events emitted ([#3858](https://github.com/newrelic/node-newrelic/pull/3858)) ([e3d84c2](https://github.com/newrelic/node-newrelic/commit/e3d84c285b9b73c2d2e7f690fe449371e92a5b1a))
+* Refactored `q` instrumentation to subscribe to events emitted ([#3853](https://github.com/newrelic/node-newrelic/pull/3853)) ([9fdb0b8](https://github.com/newrelic/node-newrelic/commit/9fdb0b80130998d283d3ec6a2f0e1b39916bd9e5))
+* Refactored `grpc-js` client instrumentation to subscriber type ([#3856](https://github.com/newrelic/node-newrelic/pull/3856)) ([057fca2](https://github.com/newrelic/node-newrelic/commit/057fca295e31a952795d688e7a12228c58d839ba))
+* Refactored `grpc-js` server instrumentation to subscriber type ([#3805](https://github.com/newrelic/node-newrelic/pull/3805)) ([ca3010a](https://github.com/newrelic/node-newrelic/commit/ca3010aca73cf69786794824063b4f2d5ce38d41))
+* Updated `@langchain/core` subscribers to properly instrument the tool class methods ([#3850](https://github.com/newrelic/node-newrelic/pull/3850)) ([2d17eed](https://github.com/newrelic/node-newrelic/commit/2d17eeda540ef99f5ce829499ca1f4b0ef65e1a6))
+
+#### Documentation
+
+* Updated compatibility report ([#3831](https://github.com/newrelic/node-newrelic/pull/3831)) ([9156a6a](https://github.com/newrelic/node-newrelic/commit/9156a6a239dd57c46524d5d1a43a654dc7a89cb5))
+
+#### Miscellaneous chores
+
+* Added subscriber packages to `load-externals` ([#3868](https://github.com/newrelic/node-newrelic/pull/3868)) ([83adcc4](https://github.com/newrelic/node-newrelic/commit/83adcc43b061e55b2d9d3df6fafa152b2ed201df))
+
+#### Tests
+
+* Removed unused context manager feature flag for running versioned tests ([#3851](https://github.com/newrelic/node-newrelic/pull/3851)) ([15c9757](https://github.com/newrelic/node-newrelic/commit/15c9757339e0d811c96ff58fc275386b9fc2a7a4))
+* Updated core tracing cross agent tests ([#3860](https://github.com/newrelic/node-newrelic/pull/3860)) ([08e4570](https://github.com/newrelic/node-newrelic/commit/08e45703852ea556c8518acd0560c57f56ea9c8c))
+* Fixed issue with span links test ([#3863](https://github.com/newrelic/node-newrelic/pull/3863)) ([23a8594](https://github.com/newrelic/node-newrelic/commit/23a8594f7b0078b62c73f73e7afa0411e96ade69))
+* Removed segment duration timing threshold in `memcached` tests ([#3869](https://github.com/newrelic/node-newrelic/pull/3869)) ([bd24410](https://github.com/newrelic/node-newrelic/commit/bd24410f135868a4e86f4c5375baf67cee2ccbc7))
+
+### v13.17.0 (2026-03-19)
+
+#### Features
+
+* Added support for Continuous Profiling ([#3834](https://github.com/newrelic/node-newrelic/pull/3834)) ([6d8d5b5](https://github.com/newrelic/node-newrelic/commit/6d8d5b5df2f459ffca39cc14ef0cdabcf7f22cea))
+  * Added server-side configuration for `profiling.enabled` ([#3790](https://github.com/newrelic/node-newrelic/pull/3790)) ([0d44e5b](https://github.com/newrelic/node-newrelic/commit/0d44e5b3b24b60d8b920f7d6a762f208fa4139ca)) ([#3847](https://github.com/newrelic/node-newrelic/pull/3847)) ([e57223c](https://github.com/newrelic/node-newrelic/commit/e57223c7c66ab7fe1f464725efe0474e23326159))
+  * Added delay + duration to `ProfilingAggregator` ([#3815](https://github.com/newrelic/node-newrelic/pull/3815)) ([8000665](https://github.com/newrelic/node-newrelic/commit/8000665b1714275f8e019a2f7c911d62ee8dd127))
+  * Added supportability metrics for profiling ([#3801](https://github.com/newrelic/node-newrelic/pull/3801)) ([19bbb7e](https://github.com/newrelic/node-newrelic/commit/19bbb7ef426e835a13ec38fc543637bdae57a5fc))
+  * Prevented ProfilingAggregator from running in serverless mode ([#3806](https://github.com/newrelic/node-newrelic/pull/3806)) ([e4db0f4](https://github.com/newrelic/node-newrelic/commit/e4db0f469fde9ae6aa4984cb312ee1de269e5c7b))
+  * Disabled `profiling.enabled` when high security mode is enabled ([#3803](https://github.com/newrelic/node-newrelic/pull/3803)) ([9d4eebb](https://github.com/newrelic/node-newrelic/commit/9d4eebb11df00fc5729ad178063712734449741a))
+  * Added Heap profiler ([#3751](https://github.com/newrelic/node-newrelic/pull/3751)) ([8262f6b](https://github.com/newrelic/node-newrelic/commit/8262f6bb5d7bf0a1c996455d6829883a7ff3b696))
+  * Added Cpu Profiler ([#3747](https://github.com/newrelic/node-newrelic/pull/3747)) ([2c2097f](https://github.com/newrelic/node-newrelic/commit/2c2097fdfd4ec924bf24901eecb8ad62a9e4c4f5))
+
+**Note**: Continuous Profiling UI is coming soon! While the Node.js agent now supports Continuous Profiling data collection, the visualization experience will debut in Limited Preview starting next week. If you would like to get early access to the profiling dashboards and UI features, please reach out to your Account Executive (AE) about how to opt-in to the preview.
+
+#### Code refactoring
+
+* Refactor `winston` instrumentation to subscribe to events emitted ([#3808](https://github.com/newrelic/node-newrelic/pull/3808)) ([4af2f48](https://github.com/newrelic/node-newrelic/commit/4af2f48d99b0842085044deb36d14af9e96ac8ed))
+
+#### Documentation
+
+* Updated compatibility report ([#3824](https://github.com/newrelic/node-newrelic/pull/3824)) ([0cfb356](https://github.com/newrelic/node-newrelic/commit/0cfb356c487fbe47c4ac11095704846d948168fb))
+
+#### Tests
+
+* Added segment duration tests for `ioredis`/`iovalkey` ([#3825](https://github.com/newrelic/node-newrelic/pull/3825)) ([9738bc8](https://github.com/newrelic/node-newrelic/commit/9738bc88b59c219d896d80e0f8ccb93866cd7f0b))
+* Added segment duration timing tests for `mysql2` ([#3820](https://github.com/newrelic/node-newrelic/pull/3820)) ([bb424ff](https://github.com/newrelic/node-newrelic/commit/bb424ffa59fe55912f1ad711d84b57518dbd778f))
+* Changed structure of bedrock tests to avoid getting instrumented core libraries from first test ([#3838](https://github.com/newrelic/node-newrelic/pull/3838)) ([886a36c](https://github.com/newrelic/node-newrelic/commit/886a36c1607e1a7c0ddc0688f7b8ee62f9a8bf10))
+* Changed structure of lambda and sns tests to avoid getting instrumented core libraries from first test ([#3836](https://github.com/newrelic/node-newrelic/pull/3836)) ([414044d](https://github.com/newrelic/node-newrelic/commit/414044d184be885843a3267097c87954daf408bd))
+* Updated `@aws-sdk/lib-dynamodb` version range ([#3829](https://github.com/newrelic/node-newrelic/pull/3829)) ([d28c938](https://github.com/newrelic/node-newrelic/commit/d28c938fbe823155fedeb5e5f85bd6a98e04ceed))
+
+### v13.16.0 (2026-03-11)
+
+#### Bug fixes
+
+* Updated `@apm-js-collab/tracing-hooks` to `0.5.0`, to allow instrumentation on windows environments. ([#3819](https://github.com/newrelic/node-newrelic/pull/3819)) ([d8f6d0f](https://github.com/newrelic/node-newrelic/commit/d8f6d0f6ac7f3ff17a667391269c41e6e57dc2fb))
+	* This version of `@apm-js-collab/tracing-hooks` includes the windows path fix for `@apm-js-collab/code-transformer`, [see](https://github.com/apm-js-collab/tracing-hooks/issues/19).
+
+#### Code refactoring
+
+* Updated `redis` v3 instrumentation to subscribe to events emitted ([#3802](https://github.com/newrelic/node-newrelic/pull/3802)) ([4d18302](https://github.com/newrelic/node-newrelic/commit/4d1830237c91d3e60c6b4e898f2c82ff131ebd57))
+
+#### Documentation
+
+* Updated compatibility report ([#3813](https://github.com/newrelic/node-newrelic/pull/3813)) ([27cb0a5](https://github.com/newrelic/node-newrelic/commit/27cb0a5e7a4c6047cce54483bd18d1337023efd3))
+
+#### Tests
+
+* Add `redis-client` and `node-redis-client` segment duration timing tests ([#3810](https://github.com/newrelic/node-newrelic/pull/3810)) ([f07bcfe](https://github.com/newrelic/node-newrelic/commit/f07bcfecf06453c846e12f030fbf7d8c055da139))
+
+### v13.15.0 (2026-03-09)
+
+#### Features
+
+* Added `time_to_first_token` for `LlmChatCompletionSummary` ([#3781](https://github.com/newrelic/node-newrelic/pull/3781)) ([737f374](https://github.com/newrelic/node-newrelic/commit/737f3740d43908be348a7795dd2c85e7a4e88cb8))
+* Added `time_to_first_token` for AWS Bedrock ([#3804](https://github.com/newrelic/node-newrelic/pull/3804)) ([a993b00](https://github.com/newrelic/node-newrelic/commit/a993b00b4fa55fb2e7ba0b7748c4c21d8660b911))
+* Added `time_to_first_token` for Google Gen AI ([#3785](https://github.com/newrelic/node-newrelic/pull/3785)) ([d90ee70](https://github.com/newrelic/node-newrelic/commit/d90ee709538e430395c0fb5863c344fe37009ce5))
+* Added `time_to_first_token` for OpenAI ([#3782](https://github.com/newrelic/node-newrelic/pull/3782)) ([07cfd57](https://github.com/newrelic/node-newrelic/commit/07cfd570d5cc3dd77a5ae23e88587d47af3d195a))
+
+#### Code refactoring
+
+* Migrated `redis` 4+ instrumentation to subscribe to events emitted ([#3773](https://github.com/newrelic/node-newrelic/pull/3773)) ([add6827](https://github.com/newrelic/node-newrelic/commit/add68278d29f5f415134426d33986a59c089d71f))
+
+#### Documentation
+
+* Updated compatibility report ([#3800](https://github.com/newrelic/node-newrelic/pull/3800)) ([5228cdc](https://github.com/newrelic/node-newrelic/commit/5228cdc0508217fa139d8b4f8232391fd063a5fa)) ([#3795](https://github.com/newrelic/node-newrelic/pull/3795)) ([1d6fe52](https://github.com/newrelic/node-newrelic/commit/1d6fe522f0e707729a4a01f5c5e5599670136917)) ([#3791](https://github.com/newrelic/node-newrelic/pull/3791)) ([e79db5b](https://github.com/newrelic/node-newrelic/commit/e79db5bbac1500bfa49f8ac3e9dc64c409396d79)) ([#3777](https://github.com/newrelic/node-newrelic/pull/3777)) ([12fe4c6](https://github.com/newrelic/node-newrelic/commit/12fe4c6f2a7a3f08efd874ba949150c7805a8888))
+
+#### Miscellaneous chores
+
+* Added version comment for agent-metadata.yml ([#3779](https://github.com/newrelic/node-newrelic/pull/3779)) ([1267293](https://github.com/newrelic/node-newrelic/commit/1267293cc36c79106b7cdd84dedf2c18b8a010d9))
+* Refactored nestjs instrumentation to subscriber type ([#3792](https://github.com/newrelic/node-newrelic/pull/3792)) ([f7feb25](https://github.com/newrelic/node-newrelic/commit/f7feb25a5c7349433e7de26a0f6aebb820c034f4))
+* Removed `@langchain/core` peer dep from langchain openai and aws tests ([#3788](https://github.com/newrelic/node-newrelic/pull/3788)) ([e670bb1](https://github.com/newrelic/node-newrelic/commit/e670bb1f47720c61509157cf45cd200234505733))
+* Removed unneccessary `generic-pool` context propagation ([#3786](https://github.com/newrelic/node-newrelic/pull/3786)) ([bdd35fb](https://github.com/newrelic/node-newrelic/commit/bdd35fbf6b57d374de84f716488498a40ece41fd))
+* Removed unnecessary `superagent` context propagation ([#3798](https://github.com/newrelic/node-newrelic/pull/3798)) ([81650e1](https://github.com/newrelic/node-newrelic/commit/81650e18d7da3897f9c82098def2f34c05c78d9e))
+* Updated `@apm-js-collab/tracing-hooks` to `0.4.0` ([#3787](https://github.com/newrelic/node-newrelic/pull/3787)) ([d85fb2b](https://github.com/newrelic/node-newrelic/commit/d85fb2b832bc7202e5acafa19ff59094c6e386ee))
+* Updated version format in agent-metadata.yml ([#3778](https://github.com/newrelic/node-newrelic/pull/3778)) ([61759e9](https://github.com/newrelic/node-newrelic/commit/61759e9c4e9ad2796a6462b967e30bad35b3fbf7))
+
+#### Tests
+
+* Updated langchain vectorstore tests to use a custom vectorstore to simplify the testing process ([#3793](https://github.com/newrelic/node-newrelic/pull/3793)) ([0fd9b54](https://github.com/newrelic/node-newrelic/commit/0fd9b54c0b4782162dae769453169ad4b05d7918))
+* Updated version range for langgraph tests ([#3794](https://github.com/newrelic/node-newrelic/pull/3794)) ([e02ce99](https://github.com/newrelic/node-newrelic/commit/e02ce99083d584d8b61a223c67c4509f3fa9f4ce))
+
+### v13.14.0 (2026-02-24)
+
+#### Features
+
+* Added ability to delay the start of the Profiler and run for n milliseconds before shutting down. ([#3758](https://github.com/newrelic/node-newrelic/pull/3758)) ([8503d25](https://github.com/newrelic/node-newrelic/commit/8503d252dce31fa5ba0cbb4f146511155de48f88))
+* Added functionality to ingest logs from Azure Functions App automatically ([#3772](https://github.com/newrelic/node-newrelic/pull/3772)) ([0c70ba2](https://github.com/newrelic/node-newrelic/commit/0c70ba20d2c03af03605ebc12baadbfd00c8733d))
+* Added support for error causes ([#3769](https://github.com/newrelic/node-newrelic/pull/3769)) ([7c5aae3](https://github.com/newrelic/node-newrelic/commit/7c5aae3ac8b14e781a0740ffc57c2b2defc4300b))
+
+#### Bug fixes
+
+* Updated `@google/genai` subscriber to handle the new `embedContentInternal` method in 1.42.0 ([#3771](https://github.com/newrelic/node-newrelic/pull/3771)) ([e96c974](https://github.com/newrelic/node-newrelic/commit/e96c974a1aa8c15caebd66004c939c43f61cc0e2))
+
+#### Code refactoring
+
+* AWS Bedrock llm events refactor ([#3759](https://github.com/newrelic/node-newrelic/pull/3759)) ([7ff953d](https://github.com/newrelic/node-newrelic/commit/7ff953dbda4529591438811b8b58cfada3767f80))
+* Google Gen AI LLM event refactor ([#3748](https://github.com/newrelic/node-newrelic/pull/3748)) ([f1e3a0e](https://github.com/newrelic/node-newrelic/commit/f1e3a0e57ea26370ce5021010ab6fe793dd5c594))
+* LangGraph LlmAgent event, remove old LlmEvent base ([#3761](https://github.com/newrelic/node-newrelic/pull/3761)) ([39d1d9a](https://github.com/newrelic/node-newrelic/commit/39d1d9a59ca467d71d4a7db4cf437d743a24939b))
+* Updated the reparenting logic for compact mode of partial traces to assign parent id to entry span ([#3768](https://github.com/newrelic/node-newrelic/pull/3768)) ([5196318](https://github.com/newrelic/node-newrelic/commit/5196318713cbeba113936a902ff4f092c33109cb))
+
+#### Documentation
+
+* Updated compatibility report ([#3774](https://github.com/newrelic/node-newrelic/pull/3774)) ([5d04bba](https://github.com/newrelic/node-newrelic/commit/5d04bba57ddb23b2aa1861cf46e393adae2c43ca))
+
+#### Miscellaneous chores
+
+* Added API key to enable support for GH action ([#3760](https://github.com/newrelic/node-newrelic/pull/3760)) ([a521e80](https://github.com/newrelic/node-newrelic/commit/a521e8065c525312d1170bfa725610d708b011e3))
+* Added call to agent metadata workflow - step 1 ([#3750](https://github.com/newrelic/node-newrelic/pull/3750)) ([90eeaec](https://github.com/newrelic/node-newrelic/commit/90eeaec0e4de28c779ccab7a8f4b03448e8448bd))
+* Added span id to all debug/trace level logs in `span.applyPartialTraceRules` ([#3766](https://github.com/newrelic/node-newrelic/pull/3766)) ([8c57230](https://github.com/newrelic/node-newrelic/commit/8c57230f3d580ace1cb5eb1611dc78f85bbe36f1))
+* Renamed file and fix cache output ([#3757](https://github.com/newrelic/node-newrelic/pull/3757)) ([1ac00ea](https://github.com/newrelic/node-newrelic/commit/1ac00ea4718fb6e95502961d777e11c8ae71dde9))
+* Set up metadata action to run with releases ([#3762](https://github.com/newrelic/node-newrelic/pull/3762)) ([66efb13](https://github.com/newrelic/node-newrelic/commit/66efb13b9bde33a28fb4256cb70bf313e10774bc))
+* Updated `@langchain/core` version for langchain-openai tests ([#3763](https://github.com/newrelic/node-newrelic/pull/3763)) ([c27213e](https://github.com/newrelic/node-newrelic/commit/c27213e6ca3048463158fcfecb7e1cfcf87d4922))
+
+### v13.13.0 (2026-02-17)
+
+## Feature Release
+
+With this release, we are making available our Node.js Hybrid Agent.
+The Node.js Hybrid Agent provides a future-proof observability solution with
+integrated support for OpenTelemetry Tracing, Metrics, and Logs APIs. Key
+enhancements like Span Links and Events on Spans are now available, ensuring
+seamless interoperability in mixed-mode environments. It is designed to bridge
+the gap for Node.js teams looking to adopt OpenTelemetry standards while
+maintaining backwards compatibility with their existing New Relic dashboards.
+
+A full product announcement, and documentation for this feature, is
+coming soon. Please [subscribe to our news releases](https://newrelic.com/blog)
+to be kept up-to-date.
+
+#### Features
+
+* Added `delay` and `duration` to profiling config ([#3754](https://github.com/newrelic/node-newrelic/pull/3754)) ([a7f06e0](https://github.com/newrelic/node-newrelic/commit/a7f06e016ee6e8488fb5364e118cdebaf8a3af0f))
+* Added `ProfilingAggregator` that will be used to collect and send `pprof_data` telemetry ([#3732](https://github.com/newrelic/node-newrelic/pull/3732)) ([738045c](https://github.com/newrelic/node-newrelic/commit/738045c955b1ca82e60c4b3a1a9799e8257c0d51))
+* Added profiling configuration ([#3733](https://github.com/newrelic/node-newrelic/pull/3733)) ([2b4d7d8](https://github.com/newrelic/node-newrelic/commit/2b4d7d898dea12d8d7f89f3024e56bf5e44d5b8b))
+* Added ProfilingManager class, used to orchestrate profilers ([#3738](https://github.com/newrelic/node-newrelic/pull/3738)) ([105da3b](https://github.com/newrelic/node-newrelic/commit/105da3b788f8e47099a47857e9e490103c6163d4))
+* Updated `RemoteMethod` to handle sending `pprof_data` through the collector ([#3734](https://github.com/newrelic/node-newrelic/pull/3734)) ([868e5bd](https://github.com/newrelic/node-newrelic/commit/868e5bdd102211b9569fef40efef77cfdd3719d2))
+* Updated the profiling config properties ([#3742](https://github.com/newrelic/node-newrelic/pull/3742)) ([fa55881](https://github.com/newrelic/node-newrelic/commit/fa55881fafe45499461c89e70ce8c3d03d4cc8af))
+
+#### Code refactoring
+
+* LangChain LLM event refactor ([#3745](https://github.com/newrelic/node-newrelic/pull/3745)) ([b2612ec](https://github.com/newrelic/node-newrelic/commit/b2612ec1a95f68c19290025f4279cd0f06f6c7d1))
+* OpenAI LLM event refactor ([#3726](https://github.com/newrelic/node-newrelic/pull/3726)) ([0ccad21](https://github.com/newrelic/node-newrelic/commit/0ccad2102d8f52da5ea77161534697f98c18c21e))
+
+#### Documentation
+
+* Updated compatibility report ([#3743](https://github.com/newrelic/node-newrelic/pull/3743)) ([4a7cafc](https://github.com/newrelic/node-newrelic/commit/4a7cafc9c72aa3a947f7a27f69ceb50424d30163)) ([#3739](https://github.com/newrelic/node-newrelic/pull/3739)) ([59ff976](https://github.com/newrelic/node-newrelic/commit/59ff9768e33e029dea469739ed790407665cf135)) ([#3730](https://github.com/newrelic/node-newrelic/pull/3730)) ([dea410b](https://github.com/newrelic/node-newrelic/commit/dea410bbaab9d940030e0e7eca72b1329effe004)) ([#3703](https://github.com/newrelic/node-newrelic/pull/3703)) ([532729a](https://github.com/newrelic/node-newrelic/commit/532729a3955454a7bb9ee282630af78379233037))
+
+#### Miscellaneous chores
+
+* Added subcomponent attribute to LangChain tool traces ([#3706](https://github.com/newrelic/node-newrelic/pull/3706)) ([c5469ea](https://github.com/newrelic/node-newrelic/commit/c5469eaa40a9600f56390f6251bc6c3ea2e30d08))
+* Added subcomponent attribute to mcp-sdk invocations ([#3749](https://github.com/newrelic/node-newrelic/pull/3749)) ([70b7f41](https://github.com/newrelic/node-newrelic/commit/70b7f4115370857836ecd172f2ce041b66376bae))
+* Enabled all OTEL signals by default when OTEL is enabled ([#3712](https://github.com/newrelic/node-newrelic/pull/3712)) ([15b82c2](https://github.com/newrelic/node-newrelic/commit/15b82c298937af4309cf3f9d0e88060b5b1c044c))
+* Fixed `@langchain/community` peer dep conflict ([#3741](https://github.com/newrelic/node-newrelic/pull/3741)) ([202d2b3](https://github.com/newrelic/node-newrelic/commit/202d2b35b01182160f3dfa014e0abcff6ca0d6d2))
+* Removed `@langchain/core` peer dep from LangGraph test matrix ([#3737](https://github.com/newrelic/node-newrelic/pull/3737)) ([8ba2616](https://github.com/newrelic/node-newrelic/commit/8ba2616afc21e2f4d1b98c6ccf448e6edbd86114))
+* Renamed OTEL metrics config params to snake_case from camelCas… ([#3711](https://github.com/newrelic/node-newrelic/pull/3711)) ([4f59108](https://github.com/newrelic/node-newrelic/commit/4f591088888ae724136d409ee93438ecd81a5539))
+* Updated `ai-support.json` to include LangGraph ([#3705](https://github.com/newrelic/node-newrelic/pull/3705)) ([aa0ba22](https://github.com/newrelic/node-newrelic/commit/aa0ba2296c13aee7090a532f504ccad2d30c6cd4))
+* Updated eslint configuration ([#3740](https://github.com/newrelic/node-newrelic/pull/3740)) ([d306374](https://github.com/newrelic/node-newrelic/commit/d3063748b8ef6f2fa74dd7791d846e9597a8f525))
+
+#### Tests
+
+* Updated mcp streaming tests to generate sessions to reuse transport for all streaming tests ([#3729](https://github.com/newrelic/node-newrelic/pull/3729)) ([1772fd5](https://github.com/newrelic/node-newrelic/commit/1772fd599236ce22e970442288f302cf06f93798))
+
 ### v13.12.0 (2026-02-02)
 
 #### Features
@@ -8299,6 +8493,11 @@ Special thanks to Ryan Copley (@RyanCopley) for the contribution.
 * The agent reports transaction trace data.
 
 [mdn-async-function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+
+
+
+
+
 
 
 

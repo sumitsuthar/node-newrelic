@@ -15,6 +15,7 @@ const { version } = require('@grpc/grpc-js/package.json')
 
 const { ERR_CODE, ERR_MSG } = require('./constants.cjs')
 const {
+  assertContext,
   assertError,
   assertExternalSegment,
   assertMetricsNotExisting,
@@ -28,7 +29,7 @@ test.beforeEach(async (ctx) => {
   ctx.nr.agent = helper.instrumentMockedAgent()
   ctx.nr.grpc = require('@grpc/grpc-js')
 
-  const { port, proto, server } = await createServer(ctx.nr.grpc)
+  const { port, proto, server } = await createServer(ctx.nr.grpc, ctx.nr.agent)
   ctx.nr.port = port
   ctx.nr.proto = proto
   ctx.nr.server = server
@@ -44,7 +45,7 @@ test.afterEach((ctx) => {
 
 test('should log tracking metrics', function(t) {
   const { agent } = t.nr
-  assertPackageMetrics({ agent, pkg: '@grpc/grpc-js', version })
+  assertPackageMetrics({ agent, pkg: '@grpc/grpc-js', version, subscriberType: true })
 })
 
 test('should track unary client requests as an external when in a transaction', (t, end) => {
@@ -62,10 +63,12 @@ test('should track unary client requests as an external when in a transaction', 
     const response = await makeUnaryRequest({
       client,
       fnName: 'sayHello',
-      payload: { name: 'New Relic' }
+      payload: { name: 'New Relic' },
+      agent
     })
     assert.ok(response, 'response exists')
     assert.equal(response.message, 'Hello New Relic', 'response message is correct')
+    assertContext({ response, key: 'client_cb', txId: tx.id, segmentName: 'helloworld.Greeter/SayHello', clientRequest: true })
     tx.end()
   })
 })
