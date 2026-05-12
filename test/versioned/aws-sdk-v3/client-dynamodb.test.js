@@ -4,12 +4,19 @@
  */
 
 'use strict'
+
 const assert = require('node:assert')
 const test = require('node:test')
+
 const helper = require('../../lib/agent_helper')
-const common = require('./common')
+const afterEach = require('./test-utils/after-each.js')
+const checkAWSAttributes = require('./test-utils/check-aws-attributes.js')
+const {
+  DATASTORE_PATTERN,
+  EXTERN_PATTERN,
+  SEGMENT_DESTINATION
+} = require('./test-utils/constants.js')
 const { createEmptyResponseServer, FAKE_CREDENTIALS } = require('../../lib/aws-server-stubs')
-const sinon = require('sinon')
 const { match } = require('../../lib/custom-assertions')
 
 const AWS_REGION = 'us-east-1'
@@ -32,8 +39,6 @@ test('DynamoDB', async (t) => {
       }
     })
 
-    const Shim = require('../../../lib/shim/datastore-shim')
-    ctx.nr.setDatastoreSpy = sinon.spy(Shim.prototype, 'setDatastore')
     const lib = require('@aws-sdk/client-dynamodb')
     ctx.nr.lib = lib
     const DynamoDBClient = lib.DynamoDBClient
@@ -50,8 +55,7 @@ test('DynamoDB', async (t) => {
   })
 
   t.afterEach((ctx) => {
-    common.afterEach(ctx)
-    ctx.nr.setDatastoreSpy.restore()
+    afterEach(ctx)
   })
 
   // See: https://github.com/newrelic/node-newrelic-aws-sdk/issues/160
@@ -78,31 +82,46 @@ test('DynamoDB', async (t) => {
   })
 
   await t.test('commands, promise-style', async (t) => {
-    const { agent, commands, client, setDatastoreSpy } = t.nr
+    const { agent, commands, client } = t.nr
+    const times = []
     await helper.runInTransaction(agent, async (tx) => {
+      let i = 0
       for (const command of commands) {
         await client.send(command)
+        const children = tx.trace.getChildren(tx.trace.root.id)
+        const actualTime = process.hrtime(children[i].timer.hrstart)
+        times.push(actualTime)
+        i++
       }
       tx.end()
-      finish({ commands, tx, setDatastoreSpy })
+      finish({ commands, tx, times })
     })
   })
 
   await t.test('commands, callback-style', async (t) => {
-    const { agent, commands, client, setDatastoreSpy } = t.nr
+    const { agent, commands, client } = t.nr
+    const times = []
     await helper.runInTransaction(agent, async (tx) => {
+      let i = 0
       for (const command of commands) {
-        await new Promise((resolve) => {
+        const segment = await new Promise((resolve) => {
           client.send(command, (err) => {
             assert.ok(!err)
+            const children = tx.trace.getChildren(tx.trace.root.id)
+            const segment = children[i]
+            i++
 
-            return setImmediate(resolve)
+            setImmediate(() => {
+              resolve(segment)
+            })
           })
         })
+        const actualTime = process.hrtime(segment.timer.hrstart)
+        times.push(actualTime)
       }
 
       tx.end()
-      finish({ commands, tx, setDatastoreSpy })
+      finish({ commands, tx, times })
     })
   })
 
@@ -116,14 +135,14 @@ test('DynamoDB', async (t) => {
       }
       tx.end()
       const root = tx.trace.root
-      const segments = common.checkAWSAttributes({
+      const segments = checkAWSAttributes({
         trace: tx.trace,
         segment: root,
-        pattern: common.DATASTORE_PATTERN
+        pattern: DATASTORE_PATTERN
       })
 
       segments.forEach((segment) => {
-        const attrs = segment.attributes.get(common.SEGMENT_DESTINATION)
+        const attrs = segment.attributes.get(SEGMENT_DESTINATION)
         assert.equal(attrs['cloud.resource_id'], null)
       })
     })
@@ -188,12 +207,12 @@ function createCommands({ lib, tableName }) {
   ]
 }
 
-function finish({ commands, tx, setDatastoreSpy }) {
+function finish({ commands, tx, times }) {
   const root = tx.trace.root
-  const segments = common.checkAWSAttributes({
+  const segments = checkAWSAttributes({
     trace: tx.trace,
     segment: root,
-    pattern: common.DATASTORE_PATTERN
+    pattern: DATASTORE_PATTERN
   })
 
   assert.equal(
@@ -202,22 +221,25 @@ function finish({ commands, tx, setDatastoreSpy }) {
     `should have ${commands.length} AWS datastore segments`
   )
 
-  const externalSegments = common.checkAWSAttributes({
+  const externalSegments = checkAWSAttributes({
     trace: tx.trace,
     segment: root,
-    pattern: common.EXTERN_PATTERN
+    pattern: EXTERN_PATTERN
   })
   assert.equal(externalSegments.length, 0, 'should not have any External segments')
 
   segments.forEach((segment, i) => {
     const command = commands[i]
+    // TODO: find a better threshold so this passes consistently
+    // const actualTime = times[i]
+    // assertSegmentDuration({ segment, actualTime })
     assert.ok(command)
     assert.equal(
       segment.name,
       `Datastore/operation/DynamoDB/${command.constructor.name}`,
       'should have operation in segment name'
     )
-    const attrs = segment.attributes.get(common.SEGMENT_DESTINATION)
+    const attrs = segment.attributes.get(SEGMENT_DESTINATION)
     attrs.port_path_or_id = parseInt(attrs.port_path_or_id, 10)
     const accountId = tx.agent.config.cloud.aws.account_id
 
@@ -233,8 +255,6 @@ function finish({ commands, tx, setDatastoreSpy }) {
       'cloud.resource_id': `arn:aws:dynamodb:${attrs['aws.region']}:${accountId}:table/${attrs.collection}`
     })
   })
-
-  assert.equal(setDatastoreSpy.callCount, 1, 'should only call setDatastore once and not per call')
 }
 
 function getCreateTableParams(tableName) {

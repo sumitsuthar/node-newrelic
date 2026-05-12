@@ -4,12 +4,13 @@
  */
 
 'use strict'
+
 const assert = require('node:assert')
 const test = require('node:test')
-const {
-  assertChatCompletionMessages,
-  assertChatCompletionSummary,
-} = require('./common')
+const semver = require('semver')
+
+const assertChatCompletionMessages = require('./test-utils/assert-chat-completion-messages.js')
+const assertChatCompletionSummary = require('./test-utils/assert-chat-completion-summary.js')
 const helper = require('../../lib/agent_helper')
 const { FAKE_CREDENTIALS, getAiResponseServer } = require('../../lib/aws-server-stubs')
 const { DESTINATIONS } = require('../../../lib/config/attribute-filter')
@@ -17,7 +18,6 @@ const { assertPackageMetrics, assertSegments, match } = require('../../lib/custo
 const promiseResolvers = require('../../lib/promise-resolvers')
 const responseConstants = require('../../lib/aws-server-stubs/ai-server/responses/constants')
 const createAiResponseServer = getAiResponseServer(__dirname)
-const semver = require('semver')
 
 // We'll test with only one model because the
 // request and response structure is the same
@@ -53,12 +53,14 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
     agent.llm.tokenCountCallback = null
   })
 
-  await t.test('should log tracking metrics', function(t) {
-    const { version } = require('@smithy/smithy-client/package.json')
-    assertPackageMetrics({ agent, pkg: '@smithy/smithy-client', version })
-  })
-
   await t.test('should properly create completion segment', async (t) => {
+    // the package we subscribe to changes in `4.13.0` of `@smithy/smithy-client` to `@smithy/core`
+    let { version } = require('@smithy/smithy-client/package.json')
+    let pkg = '@smithy/smithy-client'
+    if (semver.gte(version, '4.13.0')) {
+      ;({ version } = require('@smithy/core/package.json'))
+      pkg = '@smithy/core'
+    }
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -80,6 +82,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
         ['Llm/completion/Bedrock/ConverseCommand', [expectedExternalPath(modelId)]],
         { exact: false }
       )
+      assertPackageMetrics({ agent, pkg, version, subscriberType: true })
       tx.end()
     })
   })

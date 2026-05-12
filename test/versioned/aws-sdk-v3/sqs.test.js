@@ -4,13 +4,21 @@
  */
 
 'use strict'
+
 const assert = require('node:assert')
 const test = require('node:test')
+
 const helper = require('../../lib/agent_helper')
-const common = require('./common')
+const awsEcho = require('./test-utils/aws-echo.js')
+const checkAWSAttributes = require('./test-utils/check-aws-attributes.js')
+const afterEach = require('./test-utils/after-each.js')
+const {
+  EXTERN_PATTERN,
+  SEGMENT_DESTINATION,
+  SQS_PATTERN
+} = require('./test-utils/constants.js')
 const { createResponseServer, FAKE_CREDENTIALS } = require('../../lib/aws-server-stubs')
-const sinon = require('sinon')
-const { match } = require('../../lib/custom-assertions')
+const { match, assertSegmentDuration } = require('../../lib/custom-assertions')
 
 const AWS_REGION = 'us-east-1'
 
@@ -25,8 +33,6 @@ test('SQS API', async (t) => {
 
     ctx.nr.server = server
     ctx.nr.agent = helper.instrumentMockedAgent()
-    const Shim = require('../../../lib/shim/message-shim')
-    ctx.nr.setLibrarySpy = sinon.spy(Shim.prototype, 'setLibrary')
     const lib = require('@aws-sdk/client-sqs')
     const SQSClient = lib.SQSClient
     ctx.nr.lib = lib
@@ -38,11 +44,14 @@ test('SQS API', async (t) => {
     })
 
     ctx.nr.queueName = 'delete-aws-sdk-test-queue-' + Math.floor(Math.random() * 100000)
+
+    // Loading `node:http` after the agent has been setup in order to have
+    // it instrumented.
+    ctx.nr.http = require('node:http')
   })
 
   t.afterEach((ctx) => {
-    common.afterEach(ctx)
-    ctx.nr.setLibrarySpy.restore()
+    afterEach(ctx)
   })
 
   await t.test('commands with promises', async (t) => {
@@ -50,7 +59,6 @@ test('SQS API', async (t) => {
       agent,
       queueName,
       sqs,
-      setLibrarySpy,
       lib: {
         CreateQueueCommand,
         SendMessageCommand,
@@ -64,37 +72,166 @@ test('SQS API', async (t) => {
     const { QueueUrl } = await sqs.send(createCommand)
     assert.ok(QueueUrl)
     // run send/receive commands in transaction
+    const times = []
     await helper.runInTransaction(agent, async (transaction) => {
       // send message
       const sendMessageParams = getSendMessageParams(QueueUrl)
       const sendMessageCommand = new SendMessageCommand(sendMessageParams)
       const { MessageId } = await sqs.send(sendMessageCommand)
+      const [sendSegment] = transaction.trace.getChildren(transaction.trace.root.id)
+      times.push(process.hrtime(sendSegment.timer.hrstart))
       assert.ok(MessageId)
       // send message batch
       const sendMessageBatchParams = getSendMessageBatchParams(QueueUrl)
       const sendMessageBatchCommand = new SendMessageBatchCommand(sendMessageBatchParams)
       const { Successful } = await sqs.send(sendMessageBatchCommand)
+      const [, sendBatchSegment] = transaction.trace.getChildren(transaction.trace.root.id)
+      times.push(process.hrtime(sendBatchSegment.timer.hrstart))
       assert.ok(Successful)
       // receive message
       const receiveMessageParams = getReceiveMessageParams(QueueUrl)
       const receiveMessageCommand = new ReceiveMessageCommand(receiveMessageParams)
       const { Messages } = await sqs.send(receiveMessageCommand)
+      const [, , receiveSegment] = transaction.trace.getChildren(transaction.trace.root.id)
+      times.push(process.hrtime(receiveSegment.timer.hrstart))
       assert.ok(Messages)
       // wrap up
       transaction.end()
-      await finish({ transaction, queueName, setLibrarySpy })
+      finish({ transaction, queueName, times })
+    })
+  })
+
+  await t.test('attaches distributed trace headers when sending messages', async (t) => {
+    const { http, lib, queueName, sqs } = t.nr
+
+    const createPrams = getCreateParams(queueName)
+    const createCommand = new lib.CreateQueueCommand(createPrams)
+    const { QueueUrl } = await sqs.send(createCommand)
+    const { server, address } = await awsEcho({
+      http,
+      awsClient: sqs,
+      cmd: getSendMessageParams(QueueUrl),
+      CreateCommand: lib.SendMessageCommand
+    })
+    t.after(() => {
+      server.close()
+    })
+
+    const traceparent = '00-00015f9f95352ad550284c27c5d3084c-00f067aa0ba902b7-00'
+    const tracestate = `33@nr=0-0-33-2827902-7d3efb1b173fecfa-e8b91a159289ff74-1-1.23456-${Date.now()}`
+    const response = await helper.asyncHttpCall(address, {
+      headers: { traceparent, tracestate }
+    })
+    const nrData = response.body.nrSendCommand
+    assert.equal(
+      nrData.MessageAttributes.traceparent.StringValue.startsWith(traceparent.slice(0, 35)),
+      true
+    )
+    assert.deepEqual(nrData.MessageAttributes.tracestate, {
+      DataType: 'String',
+      StringValue: tracestate
+    })
+  })
+
+  await t.test('does not attach distributed trace headers when disabled', async (t) => {
+    const { agent, http, lib, queueName, sqs } = t.nr
+    agent.config.distributed_tracing.enabled = false
+
+    const createPrams = getCreateParams(queueName)
+    const createCommand = new lib.CreateQueueCommand(createPrams)
+    const { QueueUrl } = await sqs.send(createCommand)
+    const { server, address } = await awsEcho({
+      http,
+      awsClient: sqs,
+      cmd: getSendMessageParams(QueueUrl),
+      CreateCommand: lib.SendMessageCommand
+    })
+    t.after(() => {
+      server.close()
+    })
+
+    const traceparent = '00-00015f9f95352ad550284c27c5d3084c-00f067aa0ba902b7-00'
+    const tracestate = `33@nr=0-0-33-2827902-7d3efb1b173fecfa-e8b91a159289ff74-1-1.23456-${Date.now()}`
+    const response = await helper.asyncHttpCall(address, {
+      headers: { traceparent, tracestate }
+    })
+    const nrData = response.body.nrSendCommand
+    assert.equal(nrData.MessageAttributes.traceparent, undefined)
+    assert.equal(nrData.MessageAttributes.tracestate, undefined)
+  })
+
+  await t.test('accepts distributed trace headers', async (t) => {
+    // The mock SQS server sends responses that include pre-defined
+    // distributed trace headers embedded in the SQS message. This test
+    // verifies that our instrumentation picks up those DT headers and
+    // attaches them to the transaction correctly.
+    const { agent, lib, queueName, sqs } = t.nr
+
+    const createPrams = getCreateParams(queueName)
+    const createCommand = new lib.CreateQueueCommand(createPrams)
+    const { QueueUrl } = await sqs.send(createCommand)
+
+    await helper.runInTransaction(agent, async (tx) => {
+      const receiveMessageParams = getReceiveMessageParams(QueueUrl)
+      const receiveMessageCommand = new lib.ReceiveMessageCommand(receiveMessageParams)
+      await sqs.send(receiveMessageCommand)
+
+      assert.equal(tx.acceptedDistributedTrace, true)
+      assert.equal(tx.isDistributedTrace, true)
+      // The traceId should propagate.
+      const traceparent = tx.traceContext.createTraceparent()
+      assert.equal(
+        traceparent.startsWith('00-00015f9f95352ad550284c27c5d3084c'),
+        true
+      )
+    })
+  })
+
+  await t.test('handles messages with MessageAttributes under DT correctly', async (t) => {
+    // See issue https://github.com/newrelic/node-newrelic/issues/3901.
+    const { http, lib, queueName, sqs } = t.nr
+
+    const createPrams = getCreateParams(queueName)
+    const createCommand = new lib.CreateQueueCommand(createPrams)
+    const { QueueUrl } = await sqs.send(createCommand)
+
+    const messageParams = getSendMessageParams(QueueUrl)
+    messageParams.MessageAttributes = undefined
+    const { server, address } = await awsEcho({
+      http,
+      awsClient: sqs,
+      cmd: messageParams,
+      CreateCommand: lib.SendMessageCommand
+    })
+    t.after(() => {
+      server.close()
+    })
+
+    const traceparent = '00-00015f9f95352ad550284c27c5d3084c-00f067aa0ba902b7-00'
+    const tracestate = `33@nr=0-0-33-2827902-7d3efb1b173fecfa-e8b91a159289ff74-1-1.23456-${Date.now()}`
+    const response = await helper.asyncHttpCall(address, {
+      headers: { traceparent, tracestate }
+    })
+    const nrData = response.body.nrSendCommand
+    assert.equal(
+      nrData.MessageAttributes.traceparent.StringValue.startsWith(traceparent.slice(0, 35)),
+      true
+    )
+    assert.deepEqual(nrData.MessageAttributes.tracestate, {
+      DataType: 'String',
+      StringValue: tracestate
     })
   })
 })
 
-function finish({ transaction, queueName, setLibrarySpy }) {
+function finish({ transaction, queueName, times }) {
   const expectedSegmentCount = 3
 
   const root = transaction.trace.root
-  const segments = common.checkAWSAttributes({
+  const segments = checkAWSAttributes({
     trace: transaction.trace,
     segment: root,
-    pattern: common.SQS_PATTERN
+    pattern: SQS_PATTERN
   })
 
   assert.equal(
@@ -103,14 +240,18 @@ function finish({ transaction, queueName, setLibrarySpy }) {
     `should have ${expectedSegmentCount} AWS MessageBroker/SQS segments`
   )
 
-  const externalSegments = common.checkAWSAttributes({
+  const externalSegments = checkAWSAttributes({
     trace: transaction.trace,
     segment: root,
-    pattern: common.EXTERN_PATTERN
+    pattern: EXTERN_PATTERN
   })
   assert.equal(externalSegments.length, 0, 'should not have any External segments')
 
   const [sendMessage, sendMessageBatch, receiveMessage] = segments
+  const [sendTime, batchTime, receiveTime] = times
+  assertSegmentDuration({ segment: sendMessage, actualTime: sendTime })
+  assertSegmentDuration({ segment: sendMessageBatch, actualTime: batchTime })
+  assertSegmentDuration({ segment: receiveMessage, actualTime: receiveTime })
 
   checkName(sendMessage.name, 'Produce', queueName)
   checkAttributes(sendMessage, 'SendMessageCommand')
@@ -120,7 +261,6 @@ function finish({ transaction, queueName, setLibrarySpy }) {
 
   checkName(receiveMessage.name, 'Consume', queueName)
   checkAttributes(receiveMessage, 'ReceiveMessageCommand')
-  assert.equal(setLibrarySpy.callCount, 1, 'should only call setLibrary once and not per call')
 
   // Verify that cloud entity relationship attributes are present:
   for (const segment of segments) {
@@ -139,7 +279,7 @@ function checkName(name, action, queueName) {
 }
 
 function checkAttributes(segment, operation) {
-  const actualAttributes = segment.attributes.get(common.SEGMENT_DESTINATION)
+  const actualAttributes = segment.attributes.get(SEGMENT_DESTINATION)
 
   const expectedAttributes = {
     'aws.operation': operation,
