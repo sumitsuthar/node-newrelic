@@ -2,8 +2,6 @@
   "name": "koa-tests",
   "targets": [
     {"name": "koa", "minAgentVersion": "3.2.0"},
-    {"name": "koa-route", "minAgentVersion": "3.2.0"},
-    {"name": "koa-router", "minAgentVersion": "3.2.0"},
     {"name": "@koa/router", "minAgentVersion": "3.2.0"}
   ],
   "version": "0.0.0",
@@ -11,7 +9,7 @@
   "tests": [
     {
       "engines": {
-        "node": ">=20"
+        "node": ">=22"
       },
       "dependencies": {
         "koa": {
@@ -26,26 +24,7 @@
     },
     {
       "engines": {
-        "node": ">=20"
-      },
-      "dependencies": {
-        "koa": {
-          "versions": ">=2.0.0",
-          "samples": 5
-        },
-        "koa-router": {
-          "versions": ">=12.0.1",
-          "samples": 5
-        }
-      },
-      "files": [
-        "koa-router.test.js",
-        "koa-router-clm.test.js"
-      ]
-    },
-    {
-      "engines": {
-        "node": ">=20"
+        "node": ">=22"
       },
       "dependencies": {
         "koa": {
@@ -61,27 +40,9 @@
         "scoped-koa-router.test.js",
         "scoped-koa-router-clm.test.js"
       ]
-    },
-    {
-      "engines": {
-        "node": ">=20"
-      },
-      "dependencies": {
-        "koa": {
-          "versions": ">=2.0.0",
-          "samples": 5
-        },
-        "koa-route": {
-          "versions": ">=3.0.0",
-          "samples": 5
-        }
-      },
-      "files": [
-        "koa-route.test.js"
-      ]
     }
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

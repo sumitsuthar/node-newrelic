@@ -24,16 +24,19 @@ on:
 
 jobs:
   local:
+    # `public-docs` commits/pushes the docs to the `gh-pages` branch
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     if:
       (github.event.workflow_run && github.event.workflow_run.conclusion == 'success') ||
       (github.event_name == 'workflow_dispatch' &&
         (inputs.repo_target == 'local' || inputs.repo_target == 'both'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
       - run: npm install
@@ -51,10 +54,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' &&
       (inputs.repo_target == 'docs' || inputs.repo_target == 'both'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
       - run: npm install

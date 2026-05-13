@@ -44,8 +44,6 @@ const INSTRUMENTED_LIBRARIES = [
   'ioredis',
   'kafkajs',
   'koa',
-  'koa-route',
-  'koa-router',
   'memcached',
   'mongodb',
   'mysql',

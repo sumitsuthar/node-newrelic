@@ -585,55 +585,6 @@ test('Transaction naming tests', async (t) => {
       assert.ok(txn.isIgnored())
     })
   })
-
-  await t.test('pathHashes', async (t) => {
-    bookends(t)
-
-    await t.test('should add up to 10 items to to pathHashes', (t) => {
-      const { txn } = t.nr
-      const toAdd = ['1', '2', '3', '4', '4', '5', '6', '7', '8', '9', '10', '11']
-      const expected = ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1']
-
-      toAdd.forEach(txn.pushPathHash.bind(txn))
-      assert.deepEqual(txn.pathHashes, expected)
-    })
-
-    await t.test('should not include current pathHash in alternatePathHashes', (t) => {
-      const { agent, txn } = t.nr
-      txn.name = '/a/b/c'
-      txn.referringPathHash = '/d/e/f'
-
-      const curHash = hashes.calculatePathHash(
-        agent.config.applications()[0],
-        txn.name,
-        txn.referringPathHash
-      )
-
-      txn.pathHashes = ['/a', curHash, '/a/b']
-      assert.equal(txn.alternatePathHashes(), '/a,/a/b')
-      txn.nameState.setPrefix(txn.name)
-      txn.name = null
-      txn.pathHashes = ['/a', '/a/b']
-      assert.equal(txn.alternatePathHashes(), '/a,/a/b')
-    })
-
-    await t.test('should return null when no alternate pathHashes exist', (t) => {
-      const { agent, txn } = t.nr
-      txn.nameState.setPrefix('/a/b/c')
-      txn.referringPathHash = '/d/e/f'
-
-      const curHash = hashes.calculatePathHash(
-        agent.config.applications()[0],
-        txn.nameState.getName(),
-        txn.referringPathHash
-      )
-
-      txn.pathHashes = [curHash]
-      assert.equal(txn.alternatePathHashes(), null)
-      txn.pathHashes = []
-      assert.equal(txn.alternatePathHashes(), null)
-    })
-  })
 })
 
 test('Transaction methods', async (t) => {
@@ -685,21 +636,6 @@ test('Transaction methods', async (t) => {
 
   await t.test('getIntrinsicAttributes', async (t) => {
     bookends(t)
-
-    await t.test('includes CAT attributes when enabled', (t) => {
-      const { txn } = t.nr
-      txn.agent.config.cross_application_tracer.enabled = true
-      txn.agent.config.distributed_tracing.enabled = false
-      txn.tripId = '3456'
-      txn.referringTransactionGuid = '1234'
-      txn.incomingCatId = '2345'
-
-      const attributes = txn.getIntrinsicAttributes()
-      assert.equal(attributes.referring_transaction_guid, '1234')
-      assert.equal(attributes.client_cross_process_id, '2345')
-      assert.equal(typeof attributes.path_hash, 'string')
-      assert.equal(attributes.trip_id, '3456')
-    })
 
     await t.test('includes Synthetics attributes', (t) => {
       const { txn } = t.nr
@@ -906,7 +842,6 @@ test('_acceptDistributedTracePayload', async (t) => {
 
   await t.test('should accept payload if config valid and CAT disabled', (t) => {
     const { txn } = t.nr
-    txn.agent.config.cross_application_tracer.enabled = false
 
     const data = {
       ac: '1',
@@ -1146,8 +1081,6 @@ test('_createDistributedTracePayload', async (t) => {
 
   await t.test('should create payload when DT enabled and CAT disabled', (t) => {
     const { txn } = t.nr
-    txn.agent.config.cross_application_tracer.enabled = false
-
     const payload = txn._createDistributedTracePayload().text()
 
     assert.notEqual(payload, null)
@@ -1411,7 +1344,13 @@ test('acceptDistributedTraceHeaders', async (t) => {
 test('insertDistributedTraceHeaders', async (t) => {
   t.beforeEach(function (ctx) {
     ctx.nr = {}
-    ctx.nr.agent = helper.loadMockedAgent()
+    const trustedAccountKey = '123'
+    ctx.nr.agent = helper.loadMockedAgent({
+      distributed_tracing: { enabled: true, exclude_newrelic_header: true },
+      span_events: { enabled: true }
+    })
+    ctx.nr.agent.config.trusted_account_key = trustedAccountKey
+    ctx.nr.trustedAccountKey = trustedAccountKey
     ctx.nr.tracer = helper.getTracer()
   })
 
@@ -1422,14 +1361,11 @@ test('insertDistributedTraceHeaders', async (t) => {
   await t.test(
     'should lowercase traceId for tracecontext when received upper from newrelic format',
     (t, end) => {
-      const { agent } = t.nr
-      const trustedAccountKey = '123'
+      const { agent, trustedAccountKey } = t.nr
 
       agent.config.account_id = 'AccountId1'
       agent.config.primary_application_id = 'Application1'
-      agent.config.distributed_tracing.enabled = true
-      agent.config.trusted_account_key = trustedAccountKey
-      agent.config.span_events.enabled = true
+      agent.config.distributed_tracing.exclude_newrelic_header = false
 
       const incomingTraceId = '6E2fEA0B173FDAD0'
       const expectedTraceContextTraceId = '0000000000000000' + incomingTraceId.toLowerCase()
@@ -1487,9 +1423,6 @@ test('insertDistributedTraceHeaders', async (t) => {
 
   await t.test('should generate a valid new trace context traceparent header', (t) => {
     const { agent, tracer } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
-    agent.config.span_events.enabled = true
 
     const txn = new Transaction(agent)
 
@@ -1513,8 +1446,6 @@ test('insertDistributedTraceHeaders', async (t) => {
 
   await t.test('should generate new parentId when spans_events disabled', (t) => {
     const { agent, tracer } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
     agent.config.span_events.enabled = false
 
     const txn = new Transaction(agent)
@@ -1533,9 +1464,6 @@ test('insertDistributedTraceHeaders', async (t) => {
 
   await t.test('should set traceparent sample part to 01 for sampled transaction', (t) => {
     const { agent, tracer } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
-    agent.config.span_events.enabled = true
 
     const txn = new Transaction(agent)
 
@@ -1551,9 +1479,6 @@ test('insertDistributedTraceHeaders', async (t) => {
 
   await t.test('should set traceparent traceid if traceparent exists on transaction', (t) => {
     const { agent, tracer } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
-    agent.config.span_events.enabled = true
 
     const txn = new Transaction(agent)
     const traceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00'
@@ -1583,14 +1508,10 @@ test('insertDistributedTraceHeaders', async (t) => {
   })
 
   await t.test('should build traceparent from spanContext', (t) => {
-    const { agent } = t.nr
-    const trustedAccountKey = '123'
+    const { agent, trustedAccountKey } = t.nr
 
     agent.config.account_id = 'AccountId1'
     agent.config.primary_application_id = 'Application1'
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = trustedAccountKey
-    agent.config.span_events.enabled = true
     const txn = new Transaction(agent)
     const traceId = hashes.makeId(32)
     const spanId = hashes.makeId()
@@ -1614,8 +1535,7 @@ test('insertDistributedTraceHeaders', async (t) => {
 
   await t.test('should not set newrelic header if empty string', (t) => {
     const { agent } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.span_events.enabled = true
+    agent.config.distributed_tracing.exclude_newrelic_header = false
     const txn = new Transaction(agent)
     const headers = {}
     txn.insertDistributedTraceHeaders(headers)
@@ -1628,7 +1548,11 @@ test('insertDistributedTraceHeaders', async (t) => {
 test('acceptTraceContextPayload', async (t) => {
   t.beforeEach(function (ctx) {
     ctx.nr = {}
-    ctx.nr.agent = helper.loadMockedAgent()
+    ctx.nr.agent = helper.loadMockedAgent({
+      distributed_tracing: { enabled: true, exclude_newrelic_header: true },
+      span_events: { enabled: true }
+    })
+    ctx.nr.agent.config.trusted_account_key = '1'
   })
 
   t.afterEach((ctx) => {
@@ -1637,10 +1561,6 @@ test('acceptTraceContextPayload', async (t) => {
 
   await t.test('should accept a valid trace context traceparent header', (t, end) => {
     const { agent } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
-    agent.config.span_events.enabled = true
-
     const goodParent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00'
 
     helper.runInTransaction(agent, function (txn) {
@@ -1659,10 +1579,6 @@ test('acceptTraceContextPayload', async (t) => {
 
   await t.test('should not accept invalid trace context traceparent header', (t, end) => {
     const { agent } = t.nr
-    agent.config.distributed_tracing.enabled = true
-    agent.config.trusted_account_key = '1'
-    agent.config.span_events.enabled = true
-
     helper.runInTransaction(agent, function (txn) {
       const childSegment = txn.trace.add('child')
       childSegment.start()
@@ -1685,8 +1601,6 @@ test('acceptTraceContextPayload', async (t) => {
   await t.test('should not accept tracestate when trusted_account_key missing', (t, end) => {
     const { agent } = t.nr
     agent.config.trusted_account_key = null
-    agent.config.distributed_tracing.enabled = true
-    agent.config.span_events.enabled = true
 
     const incomingTraceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00'
     // When two bugs combine, we might accept a tracestate we shouldn't
@@ -1716,14 +1630,10 @@ test('acceptTraceContextPayload', async (t) => {
 
   await t.test('should accept tracestate when trusted_account_key matches', (t, end) => {
     const { agent } = t.nr
-    agent.config.trusted_account_key = '33'
-    agent.config.distributed_tracing.enabled = true
-    agent.config.span_events.enabled = true
-
     const incomingTraceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00'
     // When two bugs combine, we might accept a tracestate we shouldn't
     const incomingNullKeyedTracestate =
-      '33@nr=0-0-33-2827902-7d3efb1b173fecfa-e8b91a159289ff74-1-1.23456-1518469636035'
+      '1@nr=0-0-1-2827902-7d3efb1b173fecfa-e8b91a159289ff74-1-1.23456-1518469636035'
 
     helper.runInTransaction(agent, function (txn) {
       const childSegment = txn.trace.add('child')
@@ -1737,7 +1647,7 @@ test('acceptTraceContextPayload', async (t) => {
 
       // tracestate
       assert.equal(txn.parentType, 'App')
-      assert.equal(txn.parentAcct, '33')
+      assert.equal(txn.parentAcct, '1')
       assert.equal(txn.parentApp, '2827902')
       assert.equal(txn.parentId, 'e8b91a159289ff74')
 

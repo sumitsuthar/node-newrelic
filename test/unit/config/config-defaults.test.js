@@ -54,10 +54,6 @@ test('with default properties', async (t) => {
     assert.equal(configuration.ssl, true)
   })
 
-  await t.test('should have no security_policies_token', () => {
-    assert.equal(configuration.security_policies_token, '')
-  })
-
   await t.test('should have no proxy host', () => {
     assert.equal(configuration.proxy_host, '')
   })
@@ -179,10 +175,6 @@ test('with default properties', async (t) => {
     })
 
     assert.deepStrictEqual(configuration.error_collector.ignore_status_codes, [])
-  })
-
-  await t.test('should disable cross application tracer', () => {
-    assert.equal(configuration.cross_application_tracer.enabled, false)
   })
 
   await t.test('should enable message tracer segment parameters', () => {
@@ -326,7 +318,7 @@ test('with default properties', async (t) => {
   await t.test('distributed tracing defaults', () => {
     assert.deepEqual(configuration.distributed_tracing, {
       enabled: true,
-      exclude_newrelic_header: false,
+      exclude_newrelic_header: true,
       sampler: {
         root: 'adaptive',
         remote_parent_sampled: 'adaptive',
@@ -361,6 +353,15 @@ test('with default properties', async (t) => {
     assert.equal(otel.metrics.enabled, true)
     assert.equal(otel.metrics.export_interval, 60_000)
     assert.equal(otel.metrics.export_timeout, 10_000)
+  })
+
+  await t.test('apollo_server defaults', () => {
+    const apollo = configuration.apollo_server
+    assert.equal(apollo.scalars, false)
+    assert.equal(apollo.introspection_queries, false)
+    assert.equal(apollo.service_definition_queries, false)
+    assert.equal(apollo.health_check_queries, false)
+    assert.equal(apollo.field_metrics, false)
   })
 })
 
