@@ -87,6 +87,24 @@ test('when overriding configuration values via environment variables', async (t)
     })
   })
 
+  await t.test('should coerce a numeric transaction_threshold to a number', (t, end) => {
+    // Regression guard: the transaction trace aggregator only honors a custom
+    // threshold when `typeof transaction_threshold === 'number'`, so a numeric
+    // env value must be parsed to a number rather than left as a string.
+    idempotentEnv({ NEW_RELIC_TRACER_THRESHOLD: '0.5' }, (tc) => {
+      assert.strictEqual(typeof tc.transaction_tracer.transaction_threshold, 'number')
+      assert.equal(tc.transaction_tracer.transaction_threshold, 0.5)
+      end()
+    })
+  })
+
+  await t.test('should keep a non-numeric transaction_threshold as a string', (t, end) => {
+    idempotentEnv({ NEW_RELIC_TRACER_THRESHOLD: 'apdex_f' }, (tc) => {
+      assert.strictEqual(tc.transaction_tracer.transaction_threshold, 'apdex_f')
+      end()
+    })
+  })
+
   await t.test('should pick up the collector host', (t, end) => {
     idempotentEnv({ NEW_RELIC_HOST: 'localhost' }, (tc) => {
       assert.ok(tc.host)
@@ -112,35 +130,6 @@ test('when overriding configuration values via environment variables', async (t)
       })
     })
   })
-
-  await t.test('should default OTel host if nothing to parse in the license key', (t, end) => {
-    idempotentEnv({ NEW_RELIC_LICENSE_KEY: 'hambulance' }, (tc) => {
-      assert.ok(tc.otlp_endpoint)
-      assert.equal(tc.otlp_endpoint, 'otlp.nr-data.net')
-      end()
-    })
-  })
-
-  await t.test('should parse the region off the license key for OTel', (t, end) => {
-    idempotentEnv({ NEW_RELIC_LICENSE_KEY: 'eu01xxhambulance' }, (tc) => {
-      assert.ok(tc.otlp_endpoint)
-      assert.equal(tc.otlp_endpoint, 'otlp.eu01.nr-data.net')
-      end()
-    })
-  })
-
-  await t.test(
-    'should take an explicit OTel endpoint over the license key parsed host',
-    (t, end) => {
-      idempotentEnv({ NEW_RELIC_LICENSE_KEY: 'eu01xxhambulance' }, function () {
-        idempotentEnv({ NEW_RELIC_OTLP_ENDPOINT: 'localhost' }, (tc) => {
-          assert.ok(tc.otlp_endpoint)
-          assert.equal(tc.otlp_endpoint, 'localhost')
-          end()
-        })
-      })
-    }
-  )
 
   await t.test('should pick up on feature flags set via environment variables', (t, end) => {
     const ffNamePrefix = 'NEW_RELIC_FEATURE_FLAG_'
@@ -183,7 +172,7 @@ test('when overriding configuration values via environment variables', async (t)
       assert.equal(tc.distributed_tracing.enabled, true)
       assert.equal(tc.distributed_tracing.exclude_newrelic_header, true)
       assert.equal(tc.distributed_tracing.sampler.adaptive_sampling_target, 20)
-      assert.equal(tc.sampling_target, 20)
+      assert.equal(tc.getSamplingTarget(), 20)
       end()
     })
   })
@@ -485,6 +474,7 @@ test('when overriding configuration values via environment variables', async (t)
       NEW_RELIC_PROFILING_INCLUDE: ['heap'],
       NEW_RELIC_PROFILING_DELAY: 100,
       NEW_RELIC_PROFILING_DURATION: 20000,
+      NEW_RELIC_PROFILING_SOURCE_MAPPING_ENABLED: 'true'
     }
 
     idempotentEnv(env, (tc) => {
@@ -492,6 +482,7 @@ test('when overriding configuration values via environment variables', async (t)
       assert.deepStrictEqual(tc.profiling.include, ['heap'])
       assert.equal(tc.profiling.delay, 100)
       assert.equal(tc.profiling.duration, 20000)
+      assert.equal(tc.profiling.source_mapping.enabled, true)
       end()
     })
   })
@@ -931,6 +922,13 @@ test('when overriding configuration values via environment variables', async (t)
     })
   })
 
+  await t.test('should pick up browser_monitoring.version via the standard derived env var name', (t, end) => {
+    idempotentEnv({ NEW_RELIC_BROWSER_MONITORING_VERSION: '1.317.0' }, function (tc) {
+      assert.equal(tc.browser_monitoring.version, '1.317.0')
+      end()
+    })
+  })
+
   const ipvValues = ['4', '6', 'bogus']
   for (const val of ipvValues) {
     const expectedValue = val === 'bogus' ? '4' : val
@@ -1105,15 +1103,13 @@ test('when overriding configuration values via environment variables', async (t)
         NEW_RELIC_INSTRUMENTATION_IOREDIS_ENABLED: 'false',
         'NEW_RELIC_INSTRUMENTATION_@GRPC/GRPC-JS_ENABLED': 'false',
         NEW_RELIC_INSTRUMENTATION_HTTP_ENABLED: 'false',
-        NEW_RELIC_INSTRUMENTATION_UNDICI_ENABLED: 'false',
-        NEW_RELIC_INSTRUMENTATION_DOMAIN_ENABLED: 'false',
+        NEW_RELIC_INSTRUMENTATION_UNDICI_ENABLED: 'false'
       }
       idempotentEnv(env, (config) => {
         assert.equal(config.instrumentation.ioredis.enabled, false)
         assert.equal(config.instrumentation['@grpc/grpc-js'].enabled, false)
         assert.equal(config.instrumentation.http.enabled, false)
         assert.equal(config.instrumentation.undici.enabled, false)
-        assert.equal(config.instrumentation.domain.enabled, false)
         end()
       })
     })

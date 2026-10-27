@@ -7,8 +7,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert')
-const logsApi = require('@opentelemetry/api-logs')
-
+const { logs, SeverityNumber } = require('@opentelemetry/api')
 const helper = require('#testlib/agent_helper.js')
 
 const BASE_AGENT_CONFIG = {
@@ -20,12 +19,10 @@ const BASE_AGENT_CONFIG = {
 const TS_FIXTURE = 1752516000000 // 2025-07-14T14:00:00.000-04:00
 
 test.beforeEach(async (ctx) => {
-  process.env.OTEL_BLRP_SCHEDULE_DELAY = 1_000 // Interval for processor to ship logs
   ctx.nr = {}
 })
 
 test.afterEach((ctx) => {
-  delete process.env.OTEL_BLRP_SCHEDULE_DELAY
   helper.unloadAgent(ctx.nr.agent)
 })
 
@@ -39,11 +36,9 @@ function initAgent({ t, config = BASE_AGENT_CONFIG }) {
 
 test('sends logs outside of transaction', async (t) => {
   const agent = initAgent({ t })
-  const { logs } = require('@opentelemetry/api-logs')
-
   const logger = logs.getLogger('testLogger')
   logger.emit({
-    severityNumber: logsApi.SeverityNumber.INFO,
+    severityNumber: SeverityNumber.INFO,
     body: 'test log outside of transaction',
     timestamp: new Date(TS_FIXTURE),
     attributes: {
@@ -76,7 +71,7 @@ test('sends logs outside of transaction', async (t) => {
     'Logging/lines/INFO',
     'Supportability/Logging/Forwarding/Seen',
     'Supportability/Logging/Forwarding/Sent',
-    'Supportability/Nodejs/OpenTelemetryBridge/Logs',
+    'Supportability/Logging/Nodejs/OpenTelemetryBridge/enabled',
     'Supportability/Nodejs/OpenTelemetryBridge/Setup'
   ]
   for (const expectedMetricName of expectedMetricNames) {
@@ -86,12 +81,11 @@ test('sends logs outside of transaction', async (t) => {
 
 test('sends logs within transaction', (t, end) => {
   const agent = initAgent({ t })
-  const { logs } = require('@opentelemetry/api-logs')
   const logger = logs.getLogger('testLogger')
 
   helper.runInTransaction(agent, (tx) => {
     logger.emit({
-      severityNumber: logsApi.SeverityNumber.INFO,
+      severityNumber: SeverityNumber.INFO,
       body: 'test log in transaction',
       timestamp: new Date(TS_FIXTURE),
       attributes: {
@@ -127,11 +121,9 @@ test('omits logging metrics when disabled', async (t) => {
     }
   )
   const agent = initAgent({ t, config: agentConfig })
-  const { logs } = require('@opentelemetry/api-logs')
-
   const logger = logs.getLogger('testLogger')
   logger.emit({
-    severityNumber: logsApi.SeverityNumber.INFO,
+    severityNumber: SeverityNumber.INFO,
     body: 'test log metrics disabled',
     timestamp: new Date(TS_FIXTURE),
     attributes: {
@@ -166,11 +158,9 @@ test('does not forward logs when disabled', async (t) => {
     }
   )
   const agent = initAgent({ t, config: agentConfig })
-  const { logs } = require('@opentelemetry/api-logs')
-
   const logger = logs.getLogger('testLogger')
   logger.emit({
-    severityNumber: logsApi.SeverityNumber.INFO,
+    severityNumber: SeverityNumber.INFO,
     body: 'test log no forwarding',
     timestamp: new Date(TS_FIXTURE),
     attributes: {
@@ -191,7 +181,7 @@ test('does not forward logs when disabled', async (t) => {
   expectedMetricNames = [
     'Logging/lines',
     'Logging/lines/INFO',
-    'Supportability/Nodejs/OpenTelemetryBridge/Logs',
+    'Supportability/Logging/Nodejs/OpenTelemetryBridge/enabled',
     'Supportability/Nodejs/OpenTelemetryBridge/Setup'
   ]
   for (const expectedMetricName of expectedMetricNames) {

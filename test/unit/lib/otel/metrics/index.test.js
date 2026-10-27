@@ -7,17 +7,52 @@
 
 const test = require('node:test')
 const { once, EventEmitter } = require('node:events')
+const otelApi = require('@opentelemetry/api')
 
 const SetupMetrics = require('#agentlib/otel/metrics/index.js')
 
+/**
+ * Builds a logger mock that records the messages passed to `debug` and `warn`.
+ * `child` returns the same instance so nested loggers capture into the same
+ * arrays.
+ *
+ * @returns {object} A logger with `debug`/`warn`/`child` plus `debugMessages`
+ * and `warnCalls` capture arrays.
+ */
+function captureLogger() {
+  const debugMessages = []
+  const warnCalls = []
+  const logger = {
+    debugMessages,
+    warnCalls,
+    debug: (msg) => debugMessages.push(msg),
+    warn: (...args) => warnCalls.push(args),
+    audit() {},
+    auditEnabled() { return false },
+    child() { return this }
+  }
+  return logger
+}
+
 test.beforeEach((ctx) => {
   ctx.nr = {}
+  const guid = 'guid-123456'
+  const licenseKey = 'license-123456'
 
   const agent = {
     get [Symbol.toStringTag]() { return 'Agent' },
+    // SetupMetrics branches on this: `false` takes the standard `started`-event
+    // path, `true` takes the serverless eager-exporter path.
+    serverlessMode: false,
     config: {
-      entity_guid: 'guid-123456',
-      license_key: 'license-123456',
+      otlp_resource_attributes: {
+        licenseKey,
+        appName: 'test-app',
+        'tags.accountId': '1',
+        'tags.account': 'Test Account'
+      },
+      entity_guid: guid,
+      license_key: licenseKey,
       host: 'example.com',
       port: 443,
       opentelemetry: {
@@ -30,7 +65,15 @@ test.beforeEach((ctx) => {
     },
     metrics: {
       getOrCreateMetric(name) {
-        ctx.assert.equal(name, 'Supportability/Metrics/Nodejs/OpenTelemetryBridge/enabled')
+        // Accept multiple metric names now that we record export success/failure
+        const validMetrics = [
+          'Supportability/Metrics/Nodejs/OpenTelemetryBridge/enabled',
+          'Supportability/Metrics/Nodejs/OpenTelemetryBridge/export/success',
+          'Supportability/Metrics/Nodejs/OpenTelemetryBridge/export/failure',
+          'Supportability/Metrics/Nodejs/OpenTelemetryBridge/getMeter',
+          'Supportability/Metrics/Nodejs/OpenTelemetryBridge/meter/createCounter'
+        ]
+        ctx.assert.ok(validMetrics.includes(name), `Unexpected metric: ${name}`)
         return this
       },
       incrementCallCount() {
@@ -43,22 +86,47 @@ test.beforeEach((ctx) => {
   ctx.nr.agent = agent
 })
 
+test.afterEach(() => {
+  // Reset the global meter provider so the next test's SetupMetrics wins the
+  // first-come global registration.
+  otelApi.metrics.disable()
+})
+
 test('configures global provider after agent start', async (t) => {
-  t.plan(6)
+  t.plan(10)
   const { agent } = t.nr
 
-  const signal = new SetupMetrics({ agent })
+  const logger = captureLogger()
+  const { debugMessages } = logger
+
+  const signal = new SetupMetrics({ agent, logger })
   t.assert.ok(signal)
 
   t.assert.equal(1, agent.listenerCount('started'))
+  // Bootstrapping is deferred to the `started` event, so it is logged up front
+  // but the "finished" line has not been logged yet.
+  t.assert.ok(
+    debugMessages.includes('Waiting for agent connect to finish bootstrapping OTEL metrics.'),
+    'should log that bootstrapping is deferred to agent connect'
+  )
   process.nextTick(() => agent.emit('started'))
 
   await once(agent, 'started')
   t.assert.equal(0, agent.listenerCount('started'))
 
   await once(agent, 'otelMetricsBootstrapped')
+  t.assert.ok(
+    debugMessages.includes('Agent connect finished. Finishing boostrap of OTEL metrics.'),
+    'should log that bootstrapping resumes once agent connect finishes'
+  )
   const provider = require('@opentelemetry/api').metrics.getMeterProvider()
-  t.assert.deepEqual(provider._sharedState.resource.attributes, { 'entity.guid': 'guid-123456' })
+  t.assert.deepEqual(provider._sharedState.resource.attributes, {
+    'entity.guid': 'guid-123456',
+    'tags.accountId': '1',
+    'tags.account': 'Test Account',
+    appName: 'test-app',
+    licenseKey: 'license-123456'
+  })
 })
 
 test('logs warning and uses defaults when export_interval <= export_timeout', async (t) => {
@@ -70,6 +138,8 @@ test('logs warning and uses defaults when export_interval <= export_timeout', as
 
   let warnMessage = null
   const logger = {
+    debug() {},
+    child() { return this },
     warn(...args) {
       warnMessage = args[0]
       t.assert.ok(args[0].includes('export_interval'))
@@ -82,4 +152,85 @@ test('logs warning and uses defaults when export_interval <= export_timeout', as
   const signal = new SetupMetrics({ agent, logger })
   t.assert.ok(signal)
   t.assert.ok(warnMessage !== null, 'warning should have been logged')
+})
+
+test('serverless mode does not wait for the started event', (t) => {
+  const { agent } = t.nr
+  agent.serverlessMode = true
+
+  // The serverless branch finalizes the exporter and emits the bootstrap event
+  // during construction, rather than deferring to `started`. Subscribe first so
+  // the synchronous emit is observed.
+  let bootstrapped = false
+  agent.on('otelMetricsBootstrapped', () => { bootstrapped = true })
+
+  const logger = captureLogger()
+  const { debugMessages } = logger
+
+  const signal = new SetupMetrics({ agent, logger })
+  t.assert.ok(signal)
+
+  t.assert.equal(agent.listenerCount('started'), 0)
+  t.assert.ok(
+    debugMessages.includes('Finalizing OTEL metrics in serverless mode.'),
+    'should log that metrics are finalized eagerly in serverless mode'
+  )
+  t.assert.ok(bootstrapped, 'should emit otelMetricsBootstrapped from the constructor')
+})
+
+test('getMeter called multiple times for the same scope does not re-wrap create* methods', async (t) => {
+  const { agent } = t.nr
+  const createCounterCounts = {}
+  agent.metrics.getOrCreateMetric = function (name) {
+    createCounterCounts[name] = (createCounterCounts[name] ?? 0) + 1
+    return this
+  }
+
+  // eslint-disable-next-line no-new
+  new SetupMetrics({ agent })
+  const provider = otelApi.metrics.getMeterProvider()
+
+  for (let i = 0; i < 5; i++) {
+    provider.getMeter('same-scope')
+  }
+  const meter = provider.getMeter('same-scope')
+  const counter = meter.createCounter('my-counter')
+  counter.add(1)
+
+  // getMeter was called 6 times total (5 + 1 above), so the getMeter
+  // supportability metric should be incremented 6 times.
+  t.assert.equal(
+    createCounterCounts['Supportability/Metrics/Nodejs/OpenTelemetryBridge/getMeter'],
+    6,
+    'getMeter supportability metric incremented once per getMeter call'
+  )
+
+  // createCounter was called once, so its supportability metric should be
+  // incremented exactly once – not once-per-getMeter-call.
+  t.assert.equal(
+    createCounterCounts['Supportability/Metrics/Nodejs/OpenTelemetryBridge/meter/createCounter'],
+    1,
+    'createCounter supportability metric incremented only once, not once per getMeter call'
+  )
+})
+
+test('flushToString collects, exports, and returns the base64 OTLP payload', async (t) => {
+  const { agent } = t.nr
+  agent.serverlessMode = true
+
+  const signal = new SetupMetrics({ agent })
+  const provider = otelApi.metrics.getMeterProvider()
+  provider.getMeter('test-meter').createCounter('test-counter').add(1, { foo: 'bar' })
+
+  const found = await signal.flushToString()
+  t.assert.equal(typeof found, 'string')
+  t.assert.ok(found.length > 0, 'should return a non-empty payload')
+
+  // The payload is base64-encoded OTLP protobuf. Protobuf encodes string fields
+  // (metric names, attribute keys) as literal UTF-8, so the recorded counter and
+  // its attribute survive into the decoded bytes -- confirming real metrics were
+  // serialized rather than an empty envelope.
+  const decoded = Buffer.from(found, 'base64').toString('utf8')
+  t.assert.match(decoded, /test-counter/, 'payload should carry the recorded counter name')
+  t.assert.match(decoded, /foo/, 'payload should carry the recorded attribute key')
 })

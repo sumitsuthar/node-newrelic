@@ -22,7 +22,8 @@ const testFiles = [
   'test/unit/**',
   'test/smoke/**',
   'test/versioned/**',
-  'bin/test/**'
+  'bin/test/**',
+  '.fleetControl/schemaGeneration/tests/**'
 ]
 
 // See https://eslint.org/docs/latest/use/configure/ignore#ignoring-files
@@ -33,25 +34,33 @@ const globalIgnores = {
     'out/', // Compiled jsdocs directory.
     'test/versioned-external',
     'test/versioned/nextjs/app',
-    'test/versioned/nextjs/app-dir'
+    'test/versioned/nextjs/app-dir',
+    // Transpiled profiler fixture (checked-in .ts + generated .js/.js.map).
+    'test/integration/profiling/fixtures/',
+    // Generated, committed pre-compiled config schema (npm run generate:config-validator).
+    'lib/config/schema.generated.js'
   ]
 }
 
 const newrelicConfigOverrides = {
-  files: ['**/newrelic.js', '**/newrelic.mjs'],
+  files: ['**/newrelic.js', '**/newrelic.mjs', 'cli.js'],
   rules: {
     'header/header': 'off'
   }
 }
 
 const jsdocConfig = {
+  // We do not need a `plugins: { jsdoc }` block here because when we load
+  // the recommended flat config from the plugin below (in the configuration
+  // compilation section) the plugin is already registered in that config.
+  // eslint@10 makes defining the same plugin twice a hard error instead of
+  // silently accepting it.
   settings: {
     jsdoc: {
-      // This is explicity set, so we don't get TypeScript-specific linting errors.
+      // This is explicitly set, so we don't get TypeScript-specific linting errors.
       mode: 'jsdoc'
     }
   },
-  plugins: { jsdoc },
   rules: {
     // General rules
     'jsdoc/require-jsdoc': 'off',
@@ -123,7 +132,13 @@ module.exports = [
 
   sharedConfig.plugins.sonarjs.configs.recommended,
   {
-    ...sharedConfig.configs.sonarjsTestsOverrides,
+    rules: {
+      ...sharedConfig.configs.sonarjsTestsOverrides.rules,
+      // sonar cannot distinguish plan based testing, so turn off
+      'sonarjs/assertions-in-tests': 'off',
+      // who cares about regex in tests
+      'sonarjs/super-linear-regex': 'off'
+    },
     files: testFiles
   },
   sharedConfig.configs.sonarjsBaselineOverrides,
@@ -132,9 +147,11 @@ module.exports = [
   jsdocConfig,
   jsdocOverrides,
 
+  // we do not ship `bin/` dir so ignore the node recommended for this but
+  // do not add to test files because we still want to lint them like our other linting rules
   {
     ...sharedConfig.configs.nodeRecommended,
-    ignores: testFiles
+    ignores: [...testFiles, 'bin/**']
   },
   {
     files: ['bin/*.js'],

@@ -19,6 +19,12 @@ test('should assign logger property', (t) => {
   assert.equal(profiler.logger, 'logger')
 })
 
+test('should assign sourceMapper property', () => {
+  const mapper = { infoMap: new Map() }
+  const profiler = new BaseProfiler({ logger: 'logger', sourceMapper: mapper })
+  assert.strictEqual(profiler.sourceMapper, mapper)
+})
+
 test('should throw error when start is called', (t) => {
   const { profiler } = t.nr
   assert.throws(() => {
@@ -33,7 +39,7 @@ test('should throw error when stop is called', (t) => {
   })
 })
 
-test('should throw error when collect is called', (t) => {
+test('should throw error when collect is called', async (t) => {
   const { profiler } = t.nr
-  assert.rejects(() => profiler.collect())
+  await assert.rejects(() => profiler.collect())
 })

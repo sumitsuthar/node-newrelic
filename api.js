@@ -725,6 +725,10 @@ function validateBrowserMonitoring(config, transaction, allowTransactionlessInje
     return { isValidConfig: false, failureIdx: 1 }
   }
 
+  if (transaction && transaction.isIgnored()) {
+    return { isValidConfig: false, failureIdx: 1 }
+  }
+
   return { isValidConfig: true }
 }
 
@@ -754,11 +758,11 @@ API.prototype.getBrowserTimingHeader = function getBrowserTimingHeader(options =
   )
   metric.incrementCallCount()
 
-  const trans = this.agent.getTransaction()
+  const transaction = this.agent.getTransaction()
 
   const { isValidConfig, failureIdx, quietMode } = validateBrowserMonitoring(
     this.agent.config,
-    trans,
+    transaction,
     options.allowTransactionlessInjection
   )
 
@@ -774,61 +778,12 @@ API.prototype.getBrowserTimingHeader = function getBrowserTimingHeader(options =
     beacon: config.browser_monitoring.beacon,
     errorBeacon: config.browser_monitoring.error_beacon,
     licenseKey: config.browser_monitoring.browser_key,
-    applicationID: config.application_id,
-
-    // we don't use these parameters yet
-    agentToken: null
+    applicationID: config.application_id
   }
 
-  const hasActiveTransaction = trans !== null
-
-  if (hasActiveTransaction) {
-    // bail gracefully outside an ignored transaction
-    if (trans.isIgnored()) {
-      return _gracefail(1)
-    }
-
-    /* If we're in an unnamed transaction, add a friendly warning this is to
-     * avoid people going crazy, trying to figure out why browser monitoring is
-     * not working when they're missing a transaction name.
-     */
-    const name = trans.getFullName()
-    if (!name) {
-      return _gracefail(3)
-    }
-
-    const time = trans.timer.getDurationInMillis()
-    rumHash.applicationTime = time
-
-    /*
-     * Only the first 13 chars of the license should be used for hashing with
-     * the transaction name.
-     */
-    const key = config.license_key.substring(0, 13)
-    rumHash.transactionName = hashes.obfuscateNameUsingKey(name, key)
-
-    rumHash.queueTime = trans.queueTime
-    rumHash.ttGuid = trans.id
-
-    const attrs = Object.create(null)
-
-    const customAttrs = trans.trace.custom.get(ATTR_DEST.BROWSER_EVENT)
-    if (!properties.isEmpty(customAttrs)) {
-      attrs.u = customAttrs
-    }
-
-    const agentAttrs = trans.trace.attributes.get(ATTR_DEST.BROWSER_EVENT)
-    if (!properties.isEmpty(agentAttrs)) {
-      attrs.a = agentAttrs
-    }
-
-    if (!properties.isEmpty(attrs)) {
-      rumHash.atts = hashes.obfuscateNameUsingKey(JSON.stringify(attrs), key)
-    }
-  } else {
-    logger.debug(
-      'No transaction detected when generating RUM header, continuing without transaction info'
-    )
+  // attempt to include transaction specific intrinsics
+  if (!options.allowTransactionlessInjection) {
+    generateTransactionIntrinsics({ config, rumHash, transaction })
   }
 
   // if debugging, do pretty format of JSON
@@ -845,6 +800,58 @@ API.prototype.getBrowserTimingHeader = function getBrowserTimingHeader(options =
   logger.trace('generating RUM header', out)
 
   return out
+}
+
+/**
+ * This attempts to add any intrinsics to the `NREUM.info` portion of the browser
+ * agent string.  The only required fields are: agent, beacon, errorBeacon, licenseKey,
+ * or applicationID
+ *
+ * @param {object} params to function
+ * @param {object} params.config agent configuration
+ * @param {object} params.rumHash the object that is serialized into the response as the browser agent string
+ * @param {Transaction} params.transaction active transaction
+ */
+function generateTransactionIntrinsics({ config, rumHash, transaction }) {
+  // We could get here if `options.allowTransactionlessInjection` is true
+  if (transaction === null) {
+    logger.debug('No transaction detected when generating RUM header, continuing without transaction info')
+    return
+  }
+
+  const key = config.license_key.substring(0, 13)
+  const name = transaction.getFullName()
+  // This could be falsey depending on how it is being called
+  // In traditional server side rendering frameworks that this would be called
+  // in, the transaction name should be populated but in full stack frameworks
+  // where the client loads server side components, the transaction name may
+  // not be finalized until after the browser agent is injected
+  if (name) {
+    /*
+     * Only the first 13 chars of the license should be used for hashing with
+     * the transaction name.
+     */
+    rumHash.transactionName = hashes.obfuscateNameUsingKey(name, key)
+  }
+
+  const time = transaction.timer.getDurationInMillis()
+  rumHash.applicationTime = time
+  rumHash.queueTime = transaction.queueTime
+  const attrs = Object.create(null)
+
+  const customAttrs = transaction.trace.custom.get(ATTR_DEST.BROWSER_EVENT)
+  if (!properties.isEmpty(customAttrs)) {
+    attrs.u = customAttrs
+  }
+
+  const agentAttrs = transaction.trace.attributes.get(ATTR_DEST.BROWSER_EVENT)
+  if (!properties.isEmpty(agentAttrs)) {
+    attrs.a = agentAttrs
+  }
+
+  if (!properties.isEmpty(attrs)) {
+    rumHash.atts = hashes.obfuscateNameUsingKey(JSON.stringify(attrs), key)
+  }
 }
 
 /**
@@ -1493,6 +1500,10 @@ API.prototype.instrumentMessages = function instrumentMessages(moduleName, onReq
  * Applies an instrumentation to an already loaded CommonJs module.
  *
  * Note: This function will not work for ESM packages.
+ *
+ * @deprecated Scheduled for removal in v15. Load the agent via
+ * `node -r newrelic` (or `NODE_OPTIONS='-r newrelic'`), so the agent is active
+ * before user modules resolve.
  * @example
  *
  * // oh no, express was loaded before newrelic
@@ -1511,6 +1522,12 @@ API.prototype.instrumentMessages = function instrumentMessages(moduleName, onReq
  * @returns {boolean} Whether or not the module was successfully instrumented
  */
 API.prototype.instrumentLoadedModule = function instrumentLoadedModule(moduleName, module) {
+  const warningMsg = 'newrelic.instrumentLoadedModule is deprecated and will be removed in v15. ' +
+      'Load the agent via `node -r newrelic` (or NODE_OPTIONS=\'-r newrelic\') ' +
+      'so it is active before user modules resolve.'
+  logger.warn(warningMsg)
+  process.emitWarning(warningMsg, { type: 'DeprecationWarning' })
+
   const metric = this.agent.metrics.getOrCreateMetric(
     NAMES.SUPPORTABILITY.API + '/instrumentLoadedModule'
   )
@@ -2060,6 +2077,57 @@ API.prototype.setApolloResolverAttributesCallback = function setApolloResolverAt
     const result = callback(args)
     self.addCustomAttributes(result)
   }
+}
+
+/**
+ * Function for adding a custom callback to determine whether a resolver segment should be
+ * created for an Apollo Server field resolution. This can be used to reduce span/segment
+ * volume, e.g. by skipping fields resolved by graphql-js's default (property-access) resolver.
+ *
+ * Provided functions must be synchronous and return a boolean: `true` to create the resolver
+ * segment, `false` to skip it. When registered, this callback is the sole authority on whether
+ * a resolver segment is created for a field -- it takes the place of the built-in
+ * `apollo_server.scalars` / top-level-field logic used when no callback is registered.
+ *
+ * The arguments provided to callback are:
+ *
+ * ```
+ * {
+ *   source: object,
+ *   args: array,
+ *   contextValue: object,
+ *   info: object
+ * }
+ * ```
+ *
+ * @param {Function} callback - callback function to determine if a resolver segment should be created
+ * @example
+ * function apolloResolverFilter({ info }) {
+ *  // Always create a segment for top-level Query/Mutation fields, and for
+ *  // fields that have an explicit resolver in our own resolver map.
+ *  return (
+ *    info.parentType.name === 'Query' ||
+ *    info.parentType.name === 'Mutation' ||
+ *    resolvers[info.parentType.name]?.[info.fieldName] != null
+ *  )
+ * }
+ *
+ * newrelic.setApolloResolverFilterCallback(apolloResolverFilter)
+ */
+API.prototype.setApolloResolverFilterCallback = function setApolloResolverFilterCallback(callback) {
+  const metric = this.agent.metrics.getOrCreateMetric(
+    NAMES.SUPPORTABILITY.API + '/setApolloResolverFilterCallback'
+  )
+  metric.incrementCallCount()
+
+  if (!this.shim.isFunction(callback) || this.shim.isAsyncFunction(callback)) {
+    logger.warn(
+      'Apollo resolver filter callback must be a synchronous function, resolver segments will not be filtered.'
+    )
+    return
+  }
+
+  this.agent.customCallbacks.apollo.resolverFilterCallback = callback
 }
 
 module.exports = API

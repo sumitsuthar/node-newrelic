@@ -204,7 +204,8 @@ test('fun facts about apps that New Relic is interested in including', async (t)
     agent.config.parsedLabels = parseLabels(
       {
         a: 'b',
-        [longKey]: longValue
+        [longKey]: longValue,
+        c: undefined
       },
       { child: () => logger }
     )
@@ -214,6 +215,21 @@ test('fun facts about apps that New Relic is interested in including', async (t)
         { label_type: '€'.repeat(255), label_value: '𝌆'.repeat(255) }
       ]
       assert.deepEqual(result.labels, expected)
+      end()
+    })
+  })
+
+  await t.test('should not convert label object if empty values', (t, end) => {
+    const { agent, logger, facts } = t.nr
+    agent.config.parsedLabels = parseLabels(
+      {
+        a: undefined,
+        b: undefined
+      },
+      { child: () => logger }
+    )
+    facts(agent, (result) => {
+      assert.deepEqual(result.labels, [])
       end()
     })
   })
@@ -623,7 +639,9 @@ test('display_host facts', async (t) => {
     }
 
     ctx.nr.agent = helper.loadMockedAgent(structuredClone(DISABLE_ALL_DETECTIONS))
-    ctx.nr.agent.config.utilization = {}
+    ctx.nr.agent.config.utilization = {
+      gcp_cloud_run: {}
+    }
 
     ctx.nr.osNetworkInterfaces = os.networkInterfaces
     ctx.nr.osHostname = os.hostname
@@ -824,12 +842,19 @@ test('host facts', async (t) => {
     }
 
     ctx.nr.agent = helper.loadMockedAgent(structuredClone(DISABLE_ALL_DETECTIONS))
-    ctx.nr.agent.config.utilization = null
+    ctx.nr.agent.config.utilization = {
+      gcp_cloud_run: {}
+    }
   })
 
   t.afterEach((ctx) => {
     helper.unloadAgent(ctx.nr.agent)
     delete process.env.K_SERVICE
+    delete process.env.K_REVISION
+    delete process.env.CLOUD_RUN_REVISION
+    delete process.env.CLOUD_RUN_EXECUTION
+    delete process.env.CLOUD_RUN_JOB
+    delete process.env.CLOUD_RUN_WORKER_POOL
 
     // Restore system-info cache
     if (ctx.systemInfoPath) {
@@ -853,7 +878,13 @@ test('host facts', async (t) => {
   await t.test('should be GCP id when K_SERVICE is set', (t, end) => {
     const { agent, facts } = t.nr
 
-    agent.config.utilization = { gcp_use_instance_as_host: true }
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: true,
+        include_revision_in_host: false
+      }
+    }
     process.env.K_SERVICE = 'mock-service'
 
     facts(agent, (result) => {
@@ -866,7 +897,13 @@ test('host facts', async (t) => {
     const { agent, facts } = t.nr
     agent.config.getDisplayHost()
 
-    agent.config.utilization = { gcp_use_instance_as_host: true }
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: true,
+        include_revision_in_host: false
+      }
+    }
     process.env.K_SERVICE = 'mock-service'
 
     facts(agent, (result) => {
@@ -875,10 +912,17 @@ test('host facts', async (t) => {
     })
   })
 
-  await t.test('should not be GCP id when K_SERVICE is not present', (t, end) => {
+  await t.test('should not be GCP id when K_SERVICE is set but utilization.gcp_use_instance_as_host is false', (t, end) => {
     const { agent, facts } = t.nr
 
-    agent.config.utilization = { gcp_use_instance_as_host: true }
+    agent.config.utilization = {
+      gcp_use_instance_as_host: false, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: false,
+        include_revision_in_host: false
+      }
+    }
+    process.env.K_SERVICE = 'mock-service'
 
     facts(agent, (result) => {
       assert.equal(result.host, os.hostname(), 'Hostname should not be set to GCP instance ID')
@@ -886,14 +930,183 @@ test('host facts', async (t) => {
     })
   })
 
-  await t.test('should not be GCP id when K_SERVICE is set but utilization.gcp_use_instance_as_host is false', (t, end) => {
+  await t.test('should be K_REVISION-GCPid when gcp_cloud_run.include_revision_in_host is true', (t, end) => {
     const { agent, facts } = t.nr
 
-    agent.config.utilization = { gcp_use_instance_as_host: false }
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: true,
+        include_revision_in_host: true
+      }
+    }
+    process.env.K_SERVICE = 'mock-service'
+    process.env.K_REVISION = 'mock-revision'
+
+    facts(agent, (result) => {
+      assert.equal(
+        result.host,
+        'mock-revision-mock-gcp-instance-id',
+        'Hostname should include the GCP revision and instance ID'
+      )
+      end()
+    })
+  })
+
+  await t.test('should be GCP id when gcp_cloud_run.include_revision_in_host is true but K_REVISION is not set', (t, end) => {
+    const { agent, facts } = t.nr
+
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: true,
+        include_revision_in_host: true
+      }
+    }
     process.env.K_SERVICE = 'mock-service'
 
     facts(agent, (result) => {
-      assert.equal(result.host, os.hostname(), 'Hostname should not be set to GCP instance ID')
+      assert.equal(
+        result.host,
+        'mock-gcp-instance-id',
+        'Hostname should fall back to the GCP instance ID when K_REVISION is absent'
+      )
+      end()
+    })
+  })
+
+  await t.test('should be GCP id when K_REVISION is set but gcp_cloud_run.include_revision_in_host is false', (t, end) => {
+    const { agent, facts } = t.nr
+
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true, // will be removed in v15
+      gcp_cloud_run: {
+        use_instance_as_host: true,
+        include_revision_in_host: false
+      }
+    }
+    process.env.K_SERVICE = 'mock-service'
+    process.env.K_REVISION = 'mock-revision'
+
+    facts(agent, (result) => {
+      assert.equal(
+        result.host,
+        'mock-gcp-instance-id',
+        'Hostname should be set to the GCP instance ID only'
+      )
+      end()
+    })
+  })
+
+  await t.test(
+    'should be CLOUD_RUN_REVISION-GCPid on a Cloud Run worker pool when gcp_cloud_run.include_revision_in_host is true',
+    (t, end) => {
+      const { agent, facts } = t.nr
+
+      agent.config.utilization = {
+        gcp_use_instance_as_host: true,
+        gcp_cloud_run: { use_instance_as_host: true, include_revision_in_host: true }
+      }
+      process.env.CLOUD_RUN_WORKER_POOL = 'mock-worker-pool'
+      process.env.CLOUD_RUN_REVISION = 'mock-cloud-run-revision'
+
+      facts(agent, (result) => {
+        assert.equal(
+          result.host,
+          'mock-cloud-run-revision-mock-gcp-instance-id',
+          'Hostname should include the Cloud Run revision and instance ID'
+        )
+        end()
+      })
+    }
+  )
+
+  await t.test(
+    'should be CLOUD_RUN_EXECUTION-GCPid on a Cloud Run job when gcp_cloud_run.include_revision_in_host is true',
+    (t, end) => {
+      const { agent, facts } = t.nr
+
+      agent.config.utilization = {
+        gcp_use_instance_as_host: true,
+        gcp_cloud_run: { use_instance_as_host: true, include_revision_in_host: true }
+      }
+      process.env.CLOUD_RUN_JOB = 'mock-job'
+      process.env.CLOUD_RUN_EXECUTION = 'mock-cloud-run-execution'
+
+      facts(agent, (result) => {
+        assert.equal(
+          result.host,
+          'mock-cloud-run-execution-mock-gcp-instance-id',
+          'Hostname should include the Cloud Run execution ID and instance ID'
+        )
+        end()
+      })
+    }
+  )
+
+  await t.test(
+    'should prefer K_REVISION over CLOUD_RUN_REVISION and CLOUD_RUN_EXECUTION when all are set',
+    (t, end) => {
+      const { agent, facts } = t.nr
+
+      agent.config.utilization = {
+        gcp_use_instance_as_host: true,
+        gcp_cloud_run: { use_instance_as_host: true, include_revision_in_host: true }
+      }
+      process.env.K_SERVICE = 'mock-service'
+      process.env.K_REVISION = 'mock-revision'
+      process.env.CLOUD_RUN_REVISION = 'mock-cloud-run-revision'
+      process.env.CLOUD_RUN_EXECUTION = 'mock-cloud-run-execution'
+
+      facts(agent, (result) => {
+        assert.equal(
+          result.host,
+          'mock-revision-mock-gcp-instance-id',
+          'Hostname should prefer K_REVISION over the other identifying env vars'
+        )
+        end()
+      })
+    }
+  )
+
+  await t.test(
+    'should prefer CLOUD_RUN_REVISION over CLOUD_RUN_EXECUTION when K_REVISION is not set',
+    (t, end) => {
+      const { agent, facts } = t.nr
+
+      agent.config.utilization = {
+        gcp_use_instance_as_host: true,
+        gcp_cloud_run: { use_instance_as_host: true, include_revision_in_host: true }
+      }
+      process.env.CLOUD_RUN_WORKER_POOL = 'mock-worker-pool'
+      process.env.CLOUD_RUN_REVISION = 'mock-cloud-run-revision'
+      process.env.CLOUD_RUN_EXECUTION = 'mock-cloud-run-execution'
+
+      facts(agent, (result) => {
+        assert.equal(
+          result.host,
+          'mock-cloud-run-revision-mock-gcp-instance-id',
+          'Hostname should prefer CLOUD_RUN_REVISION over CLOUD_RUN_EXECUTION'
+        )
+        end()
+      })
+    }
+  )
+
+  await t.test('should not be GCP id when none of the Cloud Run identifying env vars are set', (t, end) => {
+    const { agent, facts } = t.nr
+
+    agent.config.utilization = {
+      gcp_use_instance_as_host: true,
+      gcp_cloud_run: { use_instance_as_host: true, include_revision_in_host: true }
+    }
+
+    facts(agent, (result) => {
+      assert.equal(
+        result.host,
+        os.hostname(),
+        'Hostname should not be set to GCP instance ID outside of a Cloud Run environment'
+      )
       end()
     })
   })

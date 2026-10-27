@@ -117,6 +117,33 @@ test('should add HTTPS port to segment name when provided', async (t) => {
   })
 })
 
+test('should handle undici.Agent with rejectUnauthorized', { skip: semver.lt(pkgVersion, '5.2.0') }, async (t) => {
+  const { agent, undici } = t.nr
+  const { httpsServer } = createHttpsServer()
+  const { port } = httpsServer.address()
+  const customAgent = new undici.Agent({
+    connect: { rejectUnauthorized: false }
+  })
+  t.after(() => {
+    httpsServer.close()
+  })
+
+  await helper.runInTransaction(agent, async (transaction) => {
+    const response = await undici.fetch(`https://localhost:${port}`, {
+      dispatcher: customAgent
+    })
+    assert.equal(response.status, 200)
+    const body = await response.text()
+    assert.equal(body, 'SSL response')
+
+    assertSegments(transaction.trace, transaction.trace.root, [`External/localhost:${port}/`], {
+      exact: false
+    })
+
+    transaction.end()
+  })
+})
+
 test('should add attributes to external segment', async (t) => {
   const { agent, undici, HOST, PORT, REQUEST_URL } = t.nr
   await helper.runInTransaction(agent, async (tx) => {
@@ -183,6 +210,23 @@ test('should add unscoped metrics for an external request', async (t) => {
         `should record unscoped external metric of ${metricName} for an undici request`
       )
     })
+  })
+})
+
+test('should not create external segment if transaction is not active', async (t) => {
+  const { agent, undici, HOST, REQUEST_URL } = t.nr
+  await helper.runInTransaction(agent, async (tx) => {
+    tx.end()
+    const { statusCode, body } = await undici.request(REQUEST_URL, {
+      path: '/headers',
+      method: 'GET'
+    })
+    assert.equal(statusCode, 200)
+    const segment = metrics.findSegment(tx.trace, tx.trace.root, `External/${HOST}/headers`)
+    assert.ok(!segment, 'should not create external segment when transaction is inactive')
+    const { traceparent } = await body.json()
+    assert.ok(!traceparent, 'should not create traceparent when transaction is not active')
+    assert.equal(tx.isDistributedTrace, null)
   })
 })
 

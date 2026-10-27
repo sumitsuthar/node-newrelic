@@ -32,11 +32,11 @@ test('when loading invalid configuration file', async (t) => {
   })
 
   await t.test('should continue agent startup with config.newrelic_home property removed', () => {
-    const Cornfig = require('../../../lib/config')
+    const LocalConfig = require('../../../lib/config')
     let configuration
 
     assert.doesNotThrow(function envTest() {
-      configuration = Cornfig.initialize()
+      configuration = LocalConfig.initialize()
     })
 
     assert.ok(!configuration.newrelic_home)
@@ -151,6 +151,19 @@ test('parsedLabels', () => {
   ])
 })
 
+test('parsedLabels object', () => {
+  const configuration = Config.initialize({ labels: { foo: 'bar', bar: 'baz' } })
+  assert.deepEqual(configuration.parsedLabels, [
+    { label_type: 'foo', label_value: 'bar' },
+    { label_type: 'bar', label_value: 'baz' },
+  ])
+})
+
+test('parsedLabels empty values in object', () => {
+  const configuration = Config.initialize({ labels: { foo: undefined, bar: undefined } })
+  assert.deepEqual(configuration.parsedLabels, [])
+})
+
 test('loggingLabels', async (t) => {
   await t.test('should exclude labels regardless of case', () => {
     const config = {
@@ -201,7 +214,7 @@ test('loggingLabels', async (t) => {
     }
   )
 
-  await t.test('should not applicationLabels if no labels defined', () => {
+  await t.test('should not add applicationLabels if no labels defined', () => {
     const config = {
       labels: {},
       application_logging: {
@@ -278,7 +291,7 @@ test('distributed tracing samplers', async (t) => {
         }
       })
 
-      await t.test(`should set ${samplerName}.${type} to adaptive when ratio for trace id ratio based is not set - used wrong key`, () => {
+      await t.test(`should reject ${samplerName}.${type} trace_id_ratio_based without a ratio`, () => {
         const config = {
           distributed_tracing: {
             sampler: {}
@@ -298,12 +311,10 @@ test('distributed tracing samplers', async (t) => {
           config.distributed_tracing.sampler[name] = { ...typeConfig }
         }
 
-        const configuration = Config.initialize(config)
-        if (samplerName === 'sampler') {
-          assert.equal(configuration.distributed_tracing.sampler[type], 'adaptive')
-        } else {
-          assert.equal(configuration.distributed_tracing.sampler[name][type], 'adaptive')
-        }
+        assert.throws(
+          () => Config.initialize(config),
+          /trace_id_ratio_based must have required property 'ratio'/
+        )
       })
 
       await t.test(`should set ${samplerName}.${type} to adaptive when adaptive.sampling_target is specified`, () => {
@@ -334,7 +345,7 @@ test('distributed tracing samplers', async (t) => {
         }
       })
 
-      await t.test(`should not set ${samplerName}.${type} adaptive.sampling_target when it is not between 1-120`, () => {
+      await t.test(`should reject ${samplerName}.${type} adaptive.sampling_target that is not an integer in [1, 120]`, () => {
         const config = {
           distributed_tracing: {
             sampler: {}
@@ -354,14 +365,10 @@ test('distributed tracing samplers', async (t) => {
           config.distributed_tracing.sampler[name] = { ...typeConfig }
         }
 
-        const configuration = Config.initialize(config)
-        if (samplerName === 'sampler') {
-          assert.equal(configuration.distributed_tracing.sampler[type], 'adaptive')
-          assert.notEqual(configuration.distributed_tracing.sampler[type]?.adaptive?.sampling_target, 'foo')
-        } else {
-          assert.equal(configuration.distributed_tracing.sampler[name][type], 'adaptive')
-          assert.notEqual(configuration.distributed_tracing.sampler[name][type]?.adaptive?.sampling_target, 'foo')
-        }
+        assert.throws(
+          () => Config.initialize(config),
+          /adaptive\/sampling_target must be integer/
+        )
       })
     }
   }
@@ -435,7 +442,7 @@ test('distributed tracing samplers', async (t) => {
     assert.equal(configuration.distributed_tracing.sampler.partial_granularity.remote_parent_not_sampled.trace_id_ratio_based.ratio, 0.6)
   })
 
-  await t.test('should set to adaptive when trace_id_ratio_based.ratio misconfigured', () => {
+  await t.test('should reject a misconfigured trace_id_ratio_based.ratio', () => {
     const config = {
       distributed_tracing: {
         sampler: {
@@ -457,13 +464,13 @@ test('distributed tracing samplers', async (t) => {
       }
     }
 
-    const configuration = Config.initialize(config)
-    assert.equal(configuration.distributed_tracing.sampler.root, 'adaptive')
-    assert.equal(configuration.distributed_tracing.sampler.remote_parent_sampled, 'adaptive')
-    assert.equal(configuration.distributed_tracing.sampler.remote_parent_not_sampled, 'adaptive')
+    assert.throws(
+      () => Config.initialize(config),
+      /trace_id_ratio_based\/ratio must be number/
+    )
   })
 
-  await t.test('should not assign adaptive.sampling_target if not within [1, 120] range', () => {
+  await t.test('should reject adaptive.sampling_target not within [1, 120] range', () => {
     const config = {
       distributed_tracing: {
         sampler: {
@@ -486,10 +493,10 @@ test('distributed tracing samplers', async (t) => {
       }
     }
 
-    const configuration = Config.initialize(config)
-    assert.equal(configuration.distributed_tracing.sampler.root, 'adaptive')
-    assert.equal(configuration.distributed_tracing.sampler.remote_parent_sampled, 'adaptive')
-    assert.equal(configuration.distributed_tracing.sampler.remote_parent_not_sampled, 'adaptive')
+    assert.throws(
+      () => Config.initialize(config),
+      /adaptive\/sampling_target must be <= 120/
+    )
   })
 
   await t.test('should set all samplers to a string', () => {
@@ -545,7 +552,8 @@ test('distributed tracing samplers', async (t) => {
         delay: 100,
         duration: 20000,
         sample_interval: 200,
-        include: ['cpu']
+        include: ['cpu'],
+        source_mapping: { enabled: true }
       }
     }
 
@@ -555,6 +563,7 @@ test('distributed tracing samplers', async (t) => {
     assert.equal(configuration.profiling.duration, 20000)
     assert.equal(configuration.profiling.sample_interval, 200)
     assert.deepEqual(configuration.profiling.include, ['cpu'])
+    assert.equal(configuration.profiling.source_mapping.enabled, true)
   })
 
   await t.test('should set apollo server options', () => {
@@ -604,4 +613,9 @@ test('redacted_license_key', async (t) => {
     const config = new Config({ license_key: '' })
     assert.equal(config.redacted_license_key, '', 'should return empty string for empty license')
   })
+})
+
+test('otlp_resource_attributes', () => {
+  const config = Config.initialize()
+  assert.deepEqual(config.otlp_resource_attributes, {})
 })

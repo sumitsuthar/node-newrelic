@@ -7,7 +7,9 @@
 
 const fs = require('fs')
 const path = require('path')
-const { program } = require('commander')
+const { Command } = require('commander')
+
+const program = new Command()
 
 const Github = require('./github')
 const git = require('./git-commands')
@@ -31,7 +33,7 @@ program.option(
 )
 program.option('--dry-run', 'executes script but does not commit nor create PR')
 program.option(
-  '--repo-path <path',
+  '--repo-path <path>',
   'Path to the docs-website fork on local machine',
   // eslint-disable-next-line sonarjs/publicly-writable-directories
   '/tmp/docs-website'
@@ -167,7 +169,9 @@ async function getFrontMatter(tagName, frontMatterFile) {
   return {
     security: JSON.stringify(frontmatter.changes.security || []),
     bugfixes: JSON.stringify(frontmatter.changes.bugfixes || []),
-    features: JSON.stringify(frontmatter.changes.features || [])
+    features: JSON.stringify(frontmatter.changes.features || []),
+    // request from docs team but we cannot discern this with conventional commits
+    enhancements: JSON.stringify([])
   }
 }
 
@@ -247,6 +251,7 @@ function formatReleaseNotes(releaseDate, version, body, frontmatter) {
     `security: ${frontmatter.security}`,
     `bugs: ${frontmatter.bugfixes}`,
     `features: ${frontmatter.features}`,
+    `enhancements: ${frontmatter.enhancements}`,
     '---',
     '',
     '## Notes',

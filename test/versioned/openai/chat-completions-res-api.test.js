@@ -7,6 +7,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert')
+const semver = require('semver')
 const { tspl } = require('@matteo.collina/tspl')
 
 const { removeModules } = require('../../lib/cache-buster')
@@ -25,7 +26,7 @@ const TRACKING_METRIC = `Supportability/Nodejs/ML/OpenAI/${pkgVersion}`
 const responses = require('./mock-responses-api-responses')
 const { assertChatCompletionMessages, assertChatCompletionSummary } = require('./common-responses-api')
 
-test('responses.create', async (t) => {
+test('responses.create', { skip: semver.lt(pkgVersion, '4.87.0') }, async (t) => {
   t.beforeEach(async (ctx) => {
     ctx.nr = {}
     const { host, port, server } = await createOpenAIMockServer(responses)
@@ -53,21 +54,15 @@ test('responses.create', async (t) => {
     removeModules('openai')
   })
 
-  // Note: I cannot figure out how to get the mock server to do the right thing,
-  // but this was failing with a different issue before
   await t.test('should not crash when you call `responses.parse`', async (t) => {
     const plan = tspl(t, { plan: 1 })
     const { client, agent } = t.nr
     await helper.runInTransaction(agent, async (tx) => {
-      try {
-        await client.responses.parse({
-          input: [{ role: 'user', content: 'You are a mathematician.' }]
-        })
-      } catch (err) {
-        plan.match(err.message, /Body is unusable|body used already for/)
-      } finally {
-        tx.end()
-      }
+      const result = await client.responses.parse({
+        input: [{ role: 'user', content: 'You are a mathematician.' }]
+      })
+      plan.equal(result.output_text, '1 plus 2 is 3.')
+      tx.end()
     })
 
     await plan.completed
@@ -560,6 +555,93 @@ test('responses.create', async (t) => {
         'Supportability/Nodejs/ML/Streaming/Disabled'
       )
       assert.equal(streamingDisabled.callCount > 0, true)
+
+      tx.end()
+      end()
+    })
+  })
+
+  await t.test('should create segment and llm events when ai_monitoring is disabled at instrumentation but enabled before the call', (t, end) => {
+    const { host, port } = t.nr
+    // tear down the enabled agent/module set up in `beforeEach`
+    helper.unloadAgent(t.nr.agent)
+    removeModules('openai')
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      },
+      streaming: {
+        enabled: true
+      }
+    })
+    t.nr.agent = agent
+    const OpenAI = require('openai')
+    const client = new OpenAI({
+      apiKey: 'fake-versioned-test-key',
+      baseURL: `http://${host}:${port}`
+    })
+    t.nr.client = client
+
+    // enable ai_monitoring before making the call
+    agent.config.ai_monitoring.enabled = true
+    helper.runInTransaction(agent, async (tx) => {
+      await client.responses.create({
+        input: [{ role: 'user', content: 'You are a mathematician.' }]
+      })
+
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assert.ok(findSegment(tx.trace, tx.trace.root, OPENAI.COMPLETION))
+
+      tx.end()
+      end()
+    })
+  })
+
+  await t.test('should create segment and llm events in stream when ai_monitoring is disabled at instrumentation but enabled before the call', (t, end) => {
+    const { host, port } = t.nr
+    // tear down the enabled agent/module set up in `beforeEach`
+    helper.unloadAgent(t.nr.agent)
+    removeModules('openai')
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      },
+      streaming: {
+        enabled: true
+      }
+    })
+    t.nr.agent = agent
+    const OpenAI = require('openai')
+    const client = new OpenAI({
+      apiKey: 'fake-versioned-test-key',
+      baseURL: `http://${host}:${port}`
+    })
+    t.nr.client = client
+
+    // enable ai_monitoring before making the call
+    agent.config.ai_monitoring.enabled = true
+    helper.runInTransaction(agent, async (tx) => {
+      const content = 'Streamed response'
+      const stream = await client.responses.create({
+        stream: true,
+        input: content,
+        model: 'gpt-4'
+      })
+
+      let chunk = {}
+      for await (chunk of stream) {
+        continue
+      }
+      assert.ok(chunk.response?.output?.[0]?.content?.[0]?.text)
+
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assert.ok(findSegment(tx.trace, tx.trace.root, OPENAI.COMPLETION))
 
       tx.end()
       end()

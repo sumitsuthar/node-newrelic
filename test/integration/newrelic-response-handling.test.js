@@ -13,6 +13,7 @@ const testCases = require('../lib/response_code_handling.json')
 const {
   createTestData,
   endpointDataChecks,
+  jsonReply,
   nockRequest,
   setupConnectionEndpoints,
   RUN_ID,
@@ -50,7 +51,7 @@ test('New Relic response code handling', async (t) => {
           slow_sql: { enabled: true },
           transaction_tracer: {
             record_sql: 'obfuscated',
-            explain_threshold: Number.MIN_VALUE // force SQL traces
+            explain_threshold: Number.MIN_SAFE_INTEGER // force SQL traces
           },
           utilization: {
             detect_aws: false
@@ -80,8 +81,11 @@ test('New Relic response code handling', async (t) => {
         testClock.restore()
         if (!nock.isDone()) {
           console.error('Cleaning pending mocks: %j', nock.pendingMocks())
-          nock.cleanAll()
         }
+        // Always clear the global nock interceptor registry. Leaving consumed
+        // interceptors registered makes nock's request matching grow linearly
+        // across the 160 inner tests, slowing later tests progressively.
+        nock.cleanAll()
 
         nock.enableNetConnect()
       })
@@ -94,7 +98,7 @@ test('New Relic response code handling', async (t) => {
         const checkHasTestData = endpointDataChecks[endpointName]
         await t.test(endpointName, (t, end) => {
           const { agent, testCase, testClock } = t.nr
-          const mockEndpoint = nockRequest(endpointName, RUN_ID).reply(testCase.code)
+          const mockEndpoint = nockRequest(endpointName, RUN_ID).reply(testCase.code, ...jsonReply({ return_value: null }))
 
           agent.start(async (error) => {
             verifyAgentStart(t, error)
@@ -117,7 +121,7 @@ test('New Relic response code handling', async (t) => {
             }
 
             if (testCase.disconnect) {
-              t.nr.shutdown = nockRequest('shutdown', RUN_ID).reply(200)
+              t.nr.shutdown = nockRequest('shutdown', RUN_ID).reply(200, ...jsonReply({ return_value: null }))
             }
 
             assert.ok(

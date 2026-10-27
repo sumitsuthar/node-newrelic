@@ -9,6 +9,11 @@ const assert = require('node:assert')
 const proxyquire = require('proxyquire')
 const sinon = require('sinon')
 const SCRIPT_PATH = '../create-docs-pr'
+const { removeModules } = require('#testlib/cache-buster.js')
+
+function afterEach() {
+  removeModules(['commander'])
+}
 
 test('Create Docs PR script', async (t) => {
   await t.test('getReleaseNotes', async (t) => {
@@ -24,6 +29,8 @@ test('Create Docs PR script', async (t) => {
         script
       }
     })
+
+    t.afterEach(afterEach)
 
     await t.test('should return our release notes', async (t) => {
       const { mockFs, script } = t.nr
@@ -66,6 +73,8 @@ test('Create Docs PR script', async (t) => {
       }
     })
 
+    t.afterEach(afterEach)
+
     await t.test('should throw an error if there is no frontmatter', async (t) => {
       const { mockFs, script } = t.nr
       mockFs.readFile.yields(null, JSON.stringify({ entries: [{ version: '1.2.3', changes: [] }] }))
@@ -97,7 +106,8 @@ test('Create Docs PR script', async (t) => {
       assert.deepEqual(result, {
         security: '["one","two"]',
         bugfixes: '["five","six"]',
-        features: '["three","four"]'
+        features: '["three","four"]',
+        enhancements: '[]'
       })
     })
 
@@ -120,7 +130,8 @@ test('Create Docs PR script', async (t) => {
       assert.deepEqual(result, {
         security: '[]',
         bugfixes: '[]',
-        features: '[]'
+        features: '[]',
+        enhancements: '[]'
       })
     })
   })
@@ -130,6 +141,7 @@ test('Create Docs PR script', async (t) => {
       const script = proxyquire(SCRIPT_PATH, {})
       ctx.nr = { script }
     })
+    t.afterEach(afterEach)
 
     await t.test('should generate the release note markdown', (t) => {
       const { script } = t.nr
@@ -143,7 +155,8 @@ test('Create Docs PR script', async (t) => {
       const frontmatter = {
         security: '["upgraded a dep"]',
         bugfixes: '["fixed a bug"]',
-        features: '["added new api method"]'
+        features: '["added new api method"]',
+        enhancements: '[]'
       }
       const result = script.formatReleaseNotes('2020-04-03', 'v2.0.0', markdown, frontmatter)
 
@@ -156,6 +169,7 @@ test('Create Docs PR script', async (t) => {
         'security: ["upgraded a dep"]',
         'bugs: ["fixed a bug"]',
         'features: ["added new api method"]',
+        'enhancements: []',
         '---',
         '',
         '## Notes',

@@ -34,6 +34,7 @@ test('distributed tracing(newrelic header)', async function (t) {
       agent.config.account_id = testCase.account_id
       agent.config.primary_application_id = 'test app'
       agent.config.span_events.enabled = testCase.span_events_enabled
+      agent.config.distributed_tracing.exclude_newrelic_header = testCase.exclude_newrelic_header
       helper.runInTransaction(agent, (tx) => {
         tx.type = testCase.web_transaction ? 'web' : 'bg'
         tx.baseSegment = tx.trace.add('MyBaseSegment', (segment) => {
@@ -67,7 +68,7 @@ test('distributed tracing(newrelic header)', async function (t) {
             const headers = {}
             tx.insertDistributedTraceHeaders(headers)
             const payload = headers.newrelic
-            const created = tx._getParsedPayload(payload)
+            const created = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'))
             const exact = outbound.exact
             const keyRegex = /^d\.(.{2})$/
             Object.keys(exact).forEach((key) => {

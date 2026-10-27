@@ -8,8 +8,8 @@
 const test = require('node:test')
 const assert = require('node:assert')
 const {
-  BedrockCommand,
-  BedrockResponse,
+  InvokeModelCommand,
+  InvokeModelResponse,
 } = require('#agentlib/llm-events/aws-bedrock/index.js')
 const StreamHandler = require('#agentlib/subscribers/aws-sdk/middleware/bedrock/stream-handler.js')
 
@@ -31,7 +31,6 @@ test.beforeEach((ctx) => {
     response: ctx.nr.response,
     segment: {
       touch() {
-        assert.ok(true)
       }
     },
     bedrockCommand: {
@@ -41,10 +40,10 @@ test.beforeEach((ctx) => {
       isCohereEmbed() {
         return false
       },
-      isClaude() {
+      isClaudePromptApi() {
         return false
       },
-      isClaude3() {
+      isClaudeMessagesApi() {
         return false
       },
       isLlama() {
@@ -86,14 +85,14 @@ test('unrecognized or unhandled model uses original stream', async (t) => {
 })
 
 test('handles claude streams', async (t) => {
-  t.nr.passThroughParams.bedrockCommand.isClaude = () => true
+  t.nr.passThroughParams.bedrockCommand.isClaudePromptApi = () => true
   t.nr.chunks = [
     { completion: '1', stop_reason: null },
     { completion: '2', stop_reason: 'done', ...t.nr.metrics }
   ]
   const handler = new StreamHandler(t.nr)
 
-  assert.equal(handler.generator.name, 'handleClaude')
+  assert.equal(handler.generator.name, 'handleClaudePromptApi')
   for await (const event of handler.generator()) {
     assert.equal(event.chunk.bytes.constructor, Uint8Array)
   }
@@ -111,14 +110,14 @@ test('handles claude streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'anthropic.claude-v1',
     body: JSON.stringify({
       prompt: 'prompt',
       maxTokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
@@ -126,14 +125,14 @@ test('handles claude streams', async (t) => {
 })
 
 test('handles region specific claude streams', async (t) => {
-  t.nr.passThroughParams.bedrockCommand.isClaude = () => true
+  t.nr.passThroughParams.bedrockCommand.isClaudePromptApi = () => true
   t.nr.chunks = [
     { completion: '1', stop_reason: null },
     { completion: '2', stop_reason: 'done', ...t.nr.metrics }
   ]
   const handler = new StreamHandler(t.nr)
 
-  assert.equal(handler.generator.name, 'handleClaude')
+  assert.equal(handler.generator.name, 'handleClaudePromptApi')
   for await (const event of handler.generator()) {
     assert.equal(event.chunk.bytes.constructor, Uint8Array)
   }
@@ -151,22 +150,22 @@ test('handles region specific claude streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'us.anthropic.claude-v1',
     body: JSON.stringify({
       prompt: 'prompt',
       maxTokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
   assert.equal(br.statusCode, 200)
 })
 
-test('handles claude3streams', async (t) => {
-  t.nr.passThroughParams.bedrockCommand.isClaude3 = () => true
+test('handles claudeMsgsApi streams', async (t) => {
+  t.nr.passThroughParams.bedrockCommand.isClaudeMessagesApi = () => true
   t.nr.chunks = [
     { type: 'content_block_delta', delta: { type: 'text_delta', text: '42' } },
     { type: 'message_delta', delta: { stop_reason: 'done' } },
@@ -174,7 +173,7 @@ test('handles claude3streams', async (t) => {
   ]
   const handler = new StreamHandler(t.nr)
 
-  assert.equal(handler.generator.name, 'handleClaude3')
+  assert.equal(handler.generator.name, 'handleClaudeMessagesApi')
   for await (const event of handler.generator()) {
     assert.equal(event.chunk.bytes.constructor, Uint8Array)
   }
@@ -185,22 +184,22 @@ test('handles claude3streams', async (t) => {
     type: 'message_stop'
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
     body: JSON.stringify({
       messages: [{ content: 'prompt' }],
       maxTokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
   assert.equal(br.statusCode, 200)
 })
 
-test('handles region specific claude3streams', async (t) => {
-  t.nr.passThroughParams.bedrockCommand.isClaude3 = () => true
+test('handles region specific claudeMsgsApi streams', async (t) => {
+  t.nr.passThroughParams.bedrockCommand.isClaudeMessagesApi = () => true
   t.nr.chunks = [
     { type: 'content_block_delta', delta: { type: 'text_delta', text: '42' } },
     { type: 'message_delta', delta: { stop_reason: 'done' } },
@@ -208,7 +207,7 @@ test('handles region specific claude3streams', async (t) => {
   ]
   const handler = new StreamHandler(t.nr)
 
-  assert.equal(handler.generator.name, 'handleClaude3')
+  assert.equal(handler.generator.name, 'handleClaudeMessagesApi')
   for await (const event of handler.generator()) {
     assert.equal(event.chunk.bytes.constructor, Uint8Array)
   }
@@ -219,14 +218,14 @@ test('handles region specific claude3streams', async (t) => {
     type: 'message_stop'
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'us.anthropic.claude-3-haiku-20240307-v1:0',
     body: JSON.stringify({
       messages: [{ content: 'prompt' }],
       maxTokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
@@ -266,14 +265,14 @@ test('handles cohere streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'cohere.',
     body: JSON.stringify({
       texts: ['prompt'],
       max_tokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 2)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
@@ -318,14 +317,14 @@ test('handles cohere embedding streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'cohere.',
     body: JSON.stringify({
       texts: ['prompt'],
       max_tokens: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 0)
   assert.equal(br.finishReason, undefined)
   assert.equal(br.requestId, 'aws-req-1')
@@ -358,14 +357,14 @@ test('handles llama streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'meta.llama',
     body: JSON.stringify({
       prompt: 'prompt',
       max_gen_length: 5
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')
@@ -404,7 +403,7 @@ test('handles titan streams', async (t) => {
     }
   })
 
-  const bc = new BedrockCommand({
+  const bc = new InvokeModelCommand({
     modelId: 'amazon.titan',
     body: JSON.stringify({
       inputText: 'prompt',
@@ -414,7 +413,7 @@ test('handles titan streams', async (t) => {
       }
     })
   })
-  const br = new BedrockResponse({ bedrockCommand: bc, response: handler.response })
+  const br = new InvokeModelResponse({ bedrockCommand: bc, response: handler.response })
   assert.equal(br.completions.length, 1)
   assert.equal(br.finishReason, 'done')
   assert.equal(br.requestId, 'aws-req-1')

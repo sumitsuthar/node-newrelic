@@ -1,0 +1,56 @@
+Ensures the provided configuration will allow the agent to start without
+error. Environment variables are considered when evaluating the provided
+configuration. Server-side configuration is not considered.
+
+When `opentelemetry.enabled` is true, the required `@opentelemetry/*`
+packages must be reachable from the configuration file's require path; otherwise
+the agent will not start. The tool verifies these packages are available when
+the feature is enabled.
+
+⚠️ Server-side settings, settings overridden by high security mode, and various
+internal settings are not considered by this tool. Such settings either get
+applied at run time, or are always set to an agent specified value.
+
+Usage:
+  newrelic validate-config -c <file> [options]
+
+Examples:
+  newrelic validate-config -c ./newrelic.js
+
+  newrelic validate-config -c ./newrelic.mjs
+
+  newrelic validate-config -c ./newrelic.js -o json
+
+  newrelic validate-config -c ./newrelic.js --dump > ./newrelic.cjs
+
+Options:
+  -c, --config-file     Path to the configuration file to validate. This option
+                        is required. Allowed file types are `.js`, `.cjs`, and
+                        `.mjs`.
+
+                        The file is loaded with Node.js's normal `require` /
+                        `import` rules, so whether it is treated as CommonJS or
+                        ECMAScript follows the file extension and the nearest
+                        `package.json` `type`. Any modules the file imports are
+                        resolved relative to the file, as usual.
+
+                        The configuration must be exported as a `config`
+                        property: `export const config = {}` for ECMAScript, or
+                        `module.exports.config = {}` / `exports.config = {}` for
+                        CommonJS.
+
+  -o, --output-format   Specifies the format the tool will use when reporting
+                        the result of the validation. The default format is a
+                        human-readable report. The value "json" may be provided
+                        to generate a JSON representation of the result.
+
+  -d, --dump            Write the validated configuration to stdout as a
+                        re-loadable configuration file (environment variables
+                        and value normalization applied). Only the settings the
+                        user supplied are written. Use `--dump full` to also
+                        include every supported setting, assigning its default
+                        where the user did not provide a value. The dump is only
+                        written when the configuration is valid and startable.
+
+  -f, --format          The module format for `--dump` output: "cjs" (default),
+                        "esm", or "json". Has no effect without `--dump`.

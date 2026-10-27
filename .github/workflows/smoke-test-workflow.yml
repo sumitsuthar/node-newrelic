@@ -10,7 +10,7 @@ on:
   # Run on pushes to any branch. Not triggered for forked repo PRs.
   push:
   schedule:
-    # Run once a day at 9AM PDT (16 UTC) on week days (1-5).
+    # Run once a day at 9AM PDT (16 UTC) on mon-fri 
     # Last commit on default branch.
     # https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule
     - cron:  '0 16 * * 1-5'
@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [22.x, 24.x, 26.x]
 
     steps:
     - uses: actions/checkout@v6
@@ -35,6 +35,11 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
+        check-latest: true
+    # This step can be removed when we drop support for Node 22
+    - name: Upgrade npm
+      if: matrix.node-version == '22.x'
+      run: npm install -g npm@11
     - name: Install Dependencies
       run: npm install
     - name: Run Smoke Tests

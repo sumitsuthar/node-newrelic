@@ -17,6 +17,7 @@ const configurator = require('../../../lib/config')
 const Agent = require('../../../lib/agent')
 const Transaction = require('../../../lib/transaction')
 const CollectorResponse = require('../../../lib/collector/response')
+const logger = require('../../../lib/logger')
 
 const fs = require('node:fs')
 const os = require('node:os')
@@ -176,6 +177,20 @@ test('when loaded with defaults', async (t) => {
   await t.test('requires a valid value when changing state', (t) => {
     const { agent } = t.nr
     assert.throws(() => agent.setState('bogus'), /Invalid state bogus/)
+  })
+
+  await t.test('defines serverlessMode getter', (t) => {
+    const { agent } = t.nr
+    assert.equal(typeof agent.serverlessMode, 'boolean')
+    assert.equal(agent.serverlessMode, false)
+  })
+
+  await t.test('defines otel getter/setter', (t) => {
+    const { agent } = t.nr
+    assert.equal(agent.otel, undefined)
+    const api = { logs: {}, metrics: {}, traces: {} }
+    agent.otel = api
+    assert.equal(agent.otel, api)
   })
 })
 
@@ -515,6 +530,48 @@ test('when starting', async (t) => {
         end()
       })
     })
+  })
+
+  await t.test('waits for the source mapper to build before scheduling harvests', async (t) => {
+    const { agent } = t.nr
+    let resolveMapper
+    const mapperReady = new Promise((resolve) => {
+      resolveMapper = resolve
+    })
+    sinon.stub(agent.profilingData, 'initSourceMapper').returns(mapperReady)
+    const scheduleHarvests = sinon.stub(agent, '_scheduleHarvests')
+
+    agent.collector.connect = function (callback) {
+      agent.collector.isConnected = () => true
+      callback(null, CollectorResponse.success(null, { agent_run_id: RUN_ID }))
+    }
+
+    agent.start(() => {})
+
+    assert.equal(scheduleHarvests.callCount, 0, 'should not schedule harvests until the mapper is built')
+
+    resolveMapper()
+    await mapperReady
+    assert.equal(scheduleHarvests.callCount, 1, 'should schedule harvests once the mapper is built')
+  })
+
+  await t.test('starts without stalling when source mapping is disabled', async (t) => {
+    const { agent } = t.nr
+    agent.config.profiling.source_mapping = { enabled: false }
+    const initSourceMapper = sinon.spy(agent.profilingData, 'initSourceMapper')
+    const scheduleHarvests = sinon.stub(agent, '_scheduleHarvests').callsFake((immediate, cb) => cb())
+
+    agent.collector.connect = function (callback) {
+      agent.collector.isConnected = () => true
+      callback(null, CollectorResponse.success(null, { agent_run_id: RUN_ID }))
+    }
+
+    await new Promise((resolve) => {
+      agent.start(() => resolve())
+    })
+
+    assert.equal(initSourceMapper.callCount, 1, 'should build the source mapper once')
+    assert.equal(scheduleHarvests.callCount, 1, 'should schedule harvests')
   })
 })
 
@@ -1513,6 +1570,78 @@ test('_reset*', async (t) => {
   })
 })
 
+test('_checkBrowserMonitoringVersion', async (t) => {
+  t.beforeEach((ctx) => {
+    const agent = helper.loadMockedAgent()
+
+    const sandbox = sinon.createSandbox()
+    sandbox.stub(agent.collector, 'reportSettings')
+    sandbox.stub(logger, 'warn')
+    ctx.nr = { agent, sandbox }
+  })
+
+  t.afterEach((ctx) => {
+    helper.unloadAgent(ctx.nr.agent)
+    ctx.nr.sandbox.restore()
+  })
+
+  await t.test('should warn when version is set but no js_agent_loader is returned', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.version = '1.317.0'
+    agent.config.browser_monitoring.enable = true
+    agent._checkBrowserMonitoringVersion()
+    assert.equal(logger.warn.callCount, 1)
+  })
+
+  await t.test('should not warn when browser_monitoring.version is unset', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.enable = true
+    agent._checkBrowserMonitoringVersion()
+    assert.equal(logger.warn.callCount, 0)
+  })
+
+  await t.test('should not warn when browser_monitoring.loader is "none"', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.version = '1.317.0'
+    agent.config.browser_monitoring.enable = true
+    agent.config.browser_monitoring.loader = 'none'
+    agent._checkBrowserMonitoringVersion()
+    assert.equal(logger.warn.callCount, 0)
+  })
+
+  await t.test('should not warn when browser_monitoring.enable is false', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.version = '1.317.0'
+    agent.config.browser_monitoring.enable = false
+    agent._checkBrowserMonitoringVersion()
+    assert.equal(logger.warn.callCount, 0)
+  })
+
+  await t.test('should not warn when js_agent_loader is returned', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.version = '1.317.0'
+    agent.config.browser_monitoring.enable = true
+    agent.config.browser_monitoring.js_agent_loader = 'function(){}'
+    agent._checkBrowserMonitoringVersion()
+    assert.equal(logger.warn.callCount, 0)
+  })
+
+  await t.test('should run the check from reconfigure() after a connect response', (t) => {
+    const { agent } = t.nr
+    agent.config.browser_monitoring.version = '1.321.0'
+    agent.config.browser_monitoring.enable = true
+
+    agent.reconfigure({
+      'browser_monitoring.loader_version': '1.321.0',
+      js_agent_loader: 'function(){}'
+    })
+
+    assert.equal(logger.warn.callCount, 0)
+    assert.equal(agent.config.browser_monitoring.loader_version, '1.321.0')
+    assert.equal(agent.config.browser_monitoring.js_agent_loader, 'function(){}')
+  })
+})
+
 test('getLinkingMetadata', async (t) => {
   t.beforeEach((ctx) => {
     const agent = helper.loadMockedAgent()
@@ -1560,4 +1689,33 @@ test('getLinkingMetadata', async (t) => {
     assert.equal(metadata['entity.guid'], 'guid')
     assert.equal(metadata.hostname, agent.config.getHostnameSafe())
   })
+})
+
+test('applies user-configured attribute filter rules to a transaction', () => {
+  // The agent is built via initialize() + new Agent() rather than
+  // helper.loadMockedAgent() on purpose: loadMockedAgent seeds the config
+  // singleton, which would mask the bug. When attribute filtering read the
+  // global Config.getInstance() singleton, this flow filtered against the
+  // *default* config the logger incidentally primed the singleton with, not
+  // this agent's config, so a user-supplied `attributes.exclude` rule was
+  // silently ignored. Against 175a4ba71 this test fails its assertion (the
+  // excluded attribute is still present) rather than throwing. With the filter
+  // built from the owning config, the rule is honored.
+  const config = configurator.initialize({
+    app_name: 'attribute-filter-test',
+    license_key: 'license key here'.padEnd(40, 'a'),
+    attributes: {
+      enabled: true,
+      exclude: ['secret.*']
+    }
+  })
+  const agent = new Agent(config)
+  const tx = new Transaction(agent)
+
+  tx.trace.attributes.addAttribute(0x01, 'secret.token', 'do-not-report')
+  tx.trace.attributes.addAttribute(0x01, 'keep.me', 'reported')
+
+  const attributes = tx.trace.attributes.get(0x01)
+  assert.equal('secret.token' in attributes, false, 'user exclude rule is applied')
+  assert.equal(attributes['keep.me'], 'reported', 'non-excluded attribute is kept')
 })

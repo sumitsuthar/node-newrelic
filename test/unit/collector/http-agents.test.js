@@ -7,13 +7,30 @@
 
 const test = require('node:test')
 const assert = require('node:assert')
-const { HttpsProxyAgent } = require('https-proxy-agent')
-
+const helper = require('#testlib/agent_helper.js')
 const PROXY_HOST = 'unique.newrelic.com'
 const PROXY_PORT = '54532'
 const PROXY_URL_WITH_PORT = `https://${PROXY_HOST}:${PROXY_PORT}`
 const PROXY_URL_WITHOUT_PORT = `https://${PROXY_HOST}`
 const httpAgentsPath = require.resolve('../../../lib/collector/http-agents')
+
+// `https-proxy-agent` ships as ESM, and its dep graph imports `node:http`.
+// If we top-level-require it from `http-agents.js`, that import locks the ESM
+// `node:http` namespace exports to the *unwrapped* functions before our http
+// instrumentation can monkey-patch them. Downstream consumers that reach for
+// http via `await import('node:http')` (e.g. `@smithy/node-http-handler`, `undici`) then
+// bypass our instrumentation entirely.
+test('does not pollute ESM node:http namespace on load', async (t) => {
+  require(httpAgentsPath)
+  const agent = helper.instrumentMockedAgent()
+  t.after(() => {
+    helper.unloadAgent(agent)
+  })
+  const http = require('node:http')
+  assert.equal(http.request.name, 'wrappedRequest')
+  const ns = await import('node:http')
+  assert.equal(ns.request.name, 'wrappedRequest')
+})
 
 test('keepAlive agent', async (t) => {
   t.beforeEach((ctx) => {
@@ -112,6 +129,7 @@ test('proxy agent', async (t) => {
       ssl: true
     }
     const agent = t.nr.proxyAgent(config)
+    const { HttpsProxyAgent } = require('https-proxy-agent')
     assert.equal(agent instanceof HttpsProxyAgent, true)
     assert.equal(agent.proxy.host, `${PROXY_HOST}:${PROXY_PORT}`, 'should have correct proxy host')
     assert.deepStrictEqual(agent.connectOpts.ca, ['cert1'], 'should have correct certs')
@@ -148,5 +166,90 @@ test('proxy agent', async (t) => {
     assert.equal(agent.proxy.protocol, 'https:', 'should be set to https')
     assert.equal(agent.proxy.username, '', 'should not have basic auth username')
     assert.equal(agent.proxy.password, '', 'should not have basic auth password')
+  })
+})
+
+test('proxySettingsPresent', async (t) => {
+  t.beforeEach((ctx) => {
+    ctx.nr = {}
+    ctx.nr.proxySettingsPresent = require(httpAgentsPath).proxySettingsPresent
+  })
+
+  t.afterEach(() => {
+    delete require.cache[httpAgentsPath]
+  })
+
+  await t.test('should return true when proxy is set', (t) => {
+    const config = { proxy: PROXY_URL_WITH_PORT, proxy_host: '' }
+    assert.equal(t.nr.proxySettingsPresent(config), true)
+  })
+
+  await t.test('should return true when proxy_host is set', (t) => {
+    const config = { proxy: '', proxy_host: PROXY_HOST }
+    assert.equal(t.nr.proxySettingsPresent(config), true)
+  })
+
+  await t.test('should return true when both proxy and proxy_host are set', (t) => {
+    const config = { proxy: PROXY_URL_WITH_PORT, proxy_host: PROXY_HOST }
+    assert.equal(t.nr.proxySettingsPresent(config), true)
+  })
+
+  await t.test('should return false when neither proxy nor proxy_host are set', (t) => {
+    const config = { proxy: '', proxy_host: '' }
+    assert.equal(t.nr.proxySettingsPresent(config), false)
+  })
+})
+
+test('buildProxyUrl', async (t) => {
+  t.beforeEach((ctx) => {
+    ctx.nr = {}
+    ctx.nr.buildProxyUrl = require(httpAgentsPath).buildProxyUrl
+  })
+
+  t.afterEach(() => {
+    delete require.cache[httpAgentsPath]
+  })
+
+  await t.test('should return proxy url when proxy is set', (t) => {
+    const config = { proxy: PROXY_URL_WITH_PORT }
+    assert.equal(t.nr.buildProxyUrl(config), PROXY_URL_WITH_PORT)
+  })
+
+  await t.test('should build proxy url from proxy_host and proxy_port', (t) => {
+    const config = {
+      proxy_host: PROXY_HOST,
+      proxy_port: PROXY_PORT,
+      proxy_user: '',
+      proxy_pass: ''
+    }
+    assert.equal(t.nr.buildProxyUrl(config), PROXY_URL_WITH_PORT)
+  })
+
+  await t.test('should build proxy url with auth', (t) => {
+    const config = {
+      proxy_host: PROXY_HOST,
+      proxy_port: PROXY_PORT,
+      proxy_user: 'user',
+      proxy_pass: 'pass'
+    }
+    assert.equal(t.nr.buildProxyUrl(config), `https://user:pass@${PROXY_HOST}:${PROXY_PORT}`)
+  })
+
+  await t.test('should default to localhost:80 when no host/port specified', (t) => {
+    const config = {
+      proxy_user: '',
+      proxy_pass: ''
+    }
+    assert.equal(t.nr.buildProxyUrl(config), 'https://localhost:80')
+  })
+
+  await t.test('should not include auth when proxy_pass is empty', (t) => {
+    const config = {
+      proxy_host: PROXY_HOST,
+      proxy_port: PROXY_PORT,
+      proxy_user: 'user',
+      proxy_pass: ''
+    }
+    assert.equal(t.nr.buildProxyUrl(config), PROXY_URL_WITH_PORT)
   })
 })

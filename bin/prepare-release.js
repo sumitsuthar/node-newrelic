@@ -5,10 +5,12 @@
 
 'use strict'
 
-const { program, Option } = require('commander')
+const { Command, Option } = require('commander')
+
+const program = new Command()
 
 const Github = require('./github')
-const ConventionalChangelog = require('./conventional-changelog')
+const { ConventionalChangelog } = require('./conventional-changelog.mjs')
 const git = require('./git-commands')
 const npm = require('./npm-commands')
 

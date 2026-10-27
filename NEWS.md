@@ -1,3 +1,636 @@
+### v14.9.0 (2026-10-26)
+
+#### Features
+
+* Added `--dump` to validate-config to emit the effective configuration ([#4390](https://github.com/newrelic/node-newrelic/pull/4390)) ([fe3e684](https://github.com/newrelic/node-newrelic/commit/fe3e684621d02d849df0be5556b609ffd9239e5d))
+* Added a validate-config CLI command ([#4341](https://github.com/newrelic/node-newrelic/pull/4341)) ([821848d](https://github.com/newrelic/node-newrelic/commit/821848d4685597475e736226b67b54e71eace5e5))
+* Flagged a missing OpenTelemetry bridge as a validate-config startup blocker ([#4396](https://github.com/newrelic/node-newrelic/pull/4396)) ([75397be](https://github.com/newrelic/node-newrelic/commit/75397bec42548c78930fd3f50bbb8a5319b93d0e))
+* Reduced instances of the schema file to be just one instance in `schema.json` ([#4379](https://github.com/newrelic/node-newrelic/pull/4379)) ([a870c3b](https://github.com/newrelic/node-newrelic/commit/a870c3bb7d1415b0346934e8c9b72350103256c8))
+* Shared startup-blocker checks between the agent and validate-config CLI ([#4378](https://github.com/newrelic/node-newrelic/pull/4378)) ([06e6596](https://github.com/newrelic/node-newrelic/commit/06e65963b4c411137cba4a5cfa3fcbd562093a01))
+
+#### Bug fixes
+
+* Bounded module version resolution at filesystem root ([#4393](https://github.com/newrelic/node-newrelic/pull/4393)) ([71c90b6](https://github.com/newrelic/node-newrelic/commit/71c90b685f465faabac59a515d1275c3d871ddde))
+	* Thanks for your contribution @cnpryer  🚀
+* Fixed `http2` client handling of missing headers, default ports, IPv6 hosts, and unparseable URLs ([#4362](https://github.com/newrelic/node-newrelic/pull/4362)) ([0eef6a6](https://github.com/newrelic/node-newrelic/commit/0eef6a6c6ca689da51343e35ebd490e45f77a2f9))
+* Loaded the code-level metrics function inspector once instead of on every call ([#4391](https://github.com/newrelic/node-newrelic/pull/4391)) ([01d2797](https://github.com/newrelic/node-newrelic/commit/01d2797aa156cce59162e713fdee2bb36beb3048))
+
+#### Performance improvements
+
+* Reduced CPU per SQL query by skipping slow query processing below `explain_threshold` ([#4376](https://github.com/newrelic/node-newrelic/pull/4376)) ([047e2cd](https://github.com/newrelic/node-newrelic/commit/047e2cda35c8e5b47f407b0cd26065d4d3b9cdd3))
+    * Thanks for your contribution @naile  🚀
+
+#### Code refactoring
+
+* Migrated `http2` client instrumentation to subscriber-based ([#4360](https://github.com/newrelic/node-newrelic/pull/4360)) ([8f5b504](https://github.com/newrelic/node-newrelic/commit/8f5b504c269bfb3cad827a694179dc44d56b7264))
+
+#### Documentation
+
+* Updated compatibility report ([#4388](https://github.com/newrelic/node-newrelic/pull/4388)) ([cbb6970](https://github.com/newrelic/node-newrelic/commit/cbb6970931e6495df51c2bdb9919387c3ea811c9)) ([#4363](https://github.com/newrelic/node-newrelic/pull/4363)) ([3cc962d](https://github.com/newrelic/node-newrelic/commit/3cc962dcd4fe5f14df0313538ea13712fd89e219))
+
+#### Miscellaneous chores
+
+* Fixed `MAXIMUM_TIMEOUT_TIME` in `lib/otel/metrics/index.js` to be the correct expected value ([#4365](https://github.com/newrelic/node-newrelic/pull/4365)) ([39b037c](https://github.com/newrelic/node-newrelic/commit/39b037cbdd7ec04bbb1c0c5ab49de57647fc8eda))
+* Updated linter to latest version ([#4351](https://github.com/newrelic/node-newrelic/pull/4351)) ([a1a30f5](https://github.com/newrelic/node-newrelic/commit/a1a30f56b3314649f135a178514efbf8b985941f))
+* Added CLI tool help note about derived settings ([#4398](https://github.com/newrelic/node-newrelic/pull/4398)) ([7c8b36d](https://github.com/newrelic/node-newrelic/commit/7c8b36d3b734347c0d0003162410eb0417cbdf9e))
+
+#### Tests
+
+* Attempted to fix flaky tests ([#4383](https://github.com/newrelic/node-newrelic/pull/4383)) ([01ddfd8](https://github.com/newrelic/node-newrelic/commit/01ddfd8b234c3b55a390e31288d549fcf3b2dfa4))
+* Pinned version of `@opentelemetry/api` to 1.9.0 ([#4387](https://github.com/newrelic/node-newrelic/pull/4387)) ([525b81c](https://github.com/newrelic/node-newrelic/commit/525b81c85ccaf7c30adf6b8a601cfbb92335cb5b))
+* Updated `got` to latest to ensure it is up to date ([#4364](https://github.com/newrelic/node-newrelic/pull/4364)) ([b586275](https://github.com/newrelic/node-newrelic/commit/b5862756e641c43a8a96c5ab4054708b92d22cb1))
+
+### v14.8.0 (2026-10-13)
+
+#### Bug fixes
+
+* Prevented nested server/consumer spans from ending the outer transactions early ([#4355](https://github.com/newrelic/node-newrelic/pull/4355)) ([1a41313](https://github.com/newrelic/node-newrelic/commit/1a41313ffc1c183b0e48b05cf29ff2088ffd8922))
+* Truncated every string within an array based span attribute ([#4358](https://github.com/newrelic/node-newrelic/pull/4358)) ([9276106](https://github.com/newrelic/node-newrelic/commit/927610656dddb6099753d4ac34990f95296c8bd1))
+
+#### Code refactoring
+
+* Handled updating segment name on internal spans when `span.updateName` is used after span is created ([#4356](https://github.com/newrelic/node-newrelic/pull/4356)) ([320b7e6](https://github.com/newrelic/node-newrelic/commit/320b7e646d02e2f5130334c2b06735fe0100f3f8))
+* Updated span process `onEnd` logic to skip attaching stacktrace to error when span lacks stack trace ([#4357](https://github.com/newrelic/node-newrelic/pull/4357)) ([d318777](https://github.com/newrelic/node-newrelic/commit/d318777a197ecc3df7570da1ebebc0837aee8a5b))
+* Added instrumentation for `dns.promises`, `dns.Resolver`, `dns.promises.Resolver`, and additional `resolve*` methods ([#4321](https://github.com/newrelic/node-newrelic/pull/4321)) ([e1e7784](https://github.com/newrelic/node-newrelic/commit/e1e7784abfce958a48ac43420b9da92509c10249))
+* Refactored `net` instrumentation to subscriber-based ([#4322](https://github.com/newrelic/node-newrelic/pull/4322)) ([0123e56](https://github.com/newrelic/node-newrelic/commit/0123e5692d4bfec6ce7f5c513cbcd8ce18b6d4bc))
+
+#### Documentation
+
+* Updated compatibility report ([#4348](https://github.com/newrelic/node-newrelic/pull/4348)) ([0a01c40](https://github.com/newrelic/node-newrelic/commit/0a01c40da0601065af100d8366c8973ca8b36c72))
+
+#### Miscellaneous chores
+
+* Added method wrapper separate from shimmer ([#4306](https://github.com/newrelic/node-newrelic/pull/4306)) ([903b2d9](https://github.com/newrelic/node-newrelic/commit/903b2d90341b684c12366610df0fcab64343e0eb))
+
+### v14.7.0 (2026-10-07)
+
+#### Features
+
+* Added a new api `setApolloResolverFilterCallback` to allow customers to filter out resolver segments before they are created ([#4312](https://github.com/newrelic/node-newrelic/pull/4312)) ([0d89bde](https://github.com/newrelic/node-newrelic/commit/0d89bdef93ab4fc2e62cb49f72ccfabbcc465201))
+
+#### Bug fixes
+
+* Updated the channel name for resolver fields in ESM to `nr_resolve` ([#4346](https://github.com/newrelic/node-newrelic/pull/4346)) ([e8b294c](https://github.com/newrelic/node-newrelic/commit/e8b294cdcf9968e97f15db63aa0f2f7c1b35f8da))
+* Wrapped openai stream `[Symbol.asyncIterator]` so synthesized message survives v7 chunk normalization ([#4342](https://github.com/newrelic/node-newrelic/pull/4342)) ([aa8ed4b](https://github.com/newrelic/node-newrelic/commit/aa8ed4b3dfd04973df1a1683b17f4172fbb7bbcd))
+
+#### Code refactoring
+
+* Removed reliance on `@opentelemetry/sdk-logs` for hybrid agent ([#4318](https://github.com/newrelic/node-newrelic/pull/4318)) ([1d05075](https://github.com/newrelic/node-newrelic/commit/1d0507537465f8ccba0e0e80ba6561887229a6ea))
+* Removed reliance on `@opentelemetry/sdk-trace-base` for hybrid agent ([#4297](https://github.com/newrelic/node-newrelic/pull/4297)) ([00c363b](https://github.com/newrelic/node-newrelic/commit/00c363be953406659030b092d1665f3c160ed442))
+
+#### Documentation
+
+* Added an empty `enhancements` array to docs PR ([#4344](https://github.com/newrelic/node-newrelic/pull/4344)) ([b505eda](https://github.com/newrelic/node-newrelic/commit/b505edae232425bf7db24aa8b09dc605a4e1d824))
+* Updated compatibility report ([#4339](https://github.com/newrelic/node-newrelic/pull/4339)) ([6204ebb](https://github.com/newrelic/node-newrelic/commit/6204ebb2b01c7fa4846ee53e0d4544e785dbc6dc))
+
+### v14.6.0 (2026-10-06)
+
+#### Features
+
+* Added a pre-compiled config schema validator ([#4320](https://github.com/newrelic/node-newrelic/pull/4320)) ([c965a33](https://github.com/newrelic/node-newrelic/commit/c965a33764974989929deddf687b099eef571346))
+
+#### Bug fixes
+
+* Ended the transaction and recorded the error when an Azure Functions handler throws ([#4310](https://github.com/newrelic/node-newrelic/pull/4310)) ([918ef55](https://github.com/newrelic/node-newrelic/commit/918ef55ea3d1877c42912c6a464673dcc6aa159c))
+
+#### Code refactoring
+
+* Migrated `fs` instrumentation over to subscriber-based ([#4317](https://github.com/newrelic/node-newrelic/pull/4317)) ([4711f4c](https://github.com/newrelic/node-newrelic/commit/4711f4c621b8443dbabf4ae4db8e2e9c4ba75dec))
+* Migrated core `globals` instrumentation to subscriber-based ([#4300](https://github.com/newrelic/node-newrelic/pull/4300)) ([7827797](https://github.com/newrelic/node-newrelic/commit/7827797cf21755358fded39748b507e9737e4064))
+* Refactored the Transaction class and affected other entities ([#4246](https://github.com/newrelic/node-newrelic/pull/4246)) ([b965d8e](https://github.com/newrelic/node-newrelic/commit/b965d8ee6b35338759194e7d75020dd92b9fc105))
+
+#### Documentation
+
+* Updated compatibility report ([#4305](https://github.com/newrelic/node-newrelic/pull/4305)) ([fb5a184](https://github.com/newrelic/node-newrelic/commit/fb5a184d8b4088a1747f25be58445f818bb36128))
+
+#### Miscellaneous chores
+
+* Added `excludedPkgs` list to `instrumentation` and added `globals` to it ([#4334](https://github.com/newrelic/node-newrelic/pull/4334)) ([4f356f5](https://github.com/newrelic/node-newrelic/commit/4f356f54b26eee7fa69c72e305c24b1a8baa9af1))
+* Migrated configuration to JSON Schema ([#4284](https://github.com/newrelic/node-newrelic/pull/4284)) ([39cdebc](https://github.com/newrelic/node-newrelic/commit/39cdebc4f3823e3169bdf184624f370963a356bf))
+* Regenerated agent config json schema ([#4335](https://github.com/newrelic/node-newrelic/pull/4335)) ([4c199a5](https://github.com/newrelic/node-newrelic/commit/4c199a53e8b499a90d859877cf95ba28d73d4ba7))
+* Removed `domain` and `inspector` instrumentation and old `zlib` file ([#4331](https://github.com/newrelic/node-newrelic/pull/4331)) ([f887492](https://github.com/newrelic/node-newrelic/commit/f887492fd9a58f01f40dc3c5b03f3bfb5aef7d02))
+* Updated agent-types 1.0.0 ([#4307](https://github.com/newrelic/node-newrelic/pull/4307)) ([175a4ba](https://github.com/newrelic/node-newrelic/commit/175a4ba71998f0b8ab87f120d0b404e0994d17ad))
+
+#### Tests
+
+* Sped up newrelic-response-handling by always clearing nock ([#4329](https://github.com/newrelic/node-newrelic/pull/4329)) ([31494cc](https://github.com/newrelic/node-newrelic/commit/31494cc16e3eac36019847e6de74f35377a7a629))
+
+### v14.5.1 (2026-09-24)
+
+#### Bug fixes
+
+* Updated `segment.getExclusiveDuration` to only attempt to calculate and cache the durations of all segments in a trace once ([#4303](https://github.com/newrelic/node-newrelic/pull/4303)) ([563f743](https://github.com/newrelic/node-newrelic/commit/563f743421e3d8d0bc47328ccda028295a0f914a))
+
+#### Performance improvements
+
+* Updated algorithm for `hashes.makeId` to be 3x more performant ([#4286](https://github.com/newrelic/node-newrelic/pull/4286)) ([6737071](https://github.com/newrelic/node-newrelic/commit/6737071a0257ce2d5abd97b14066d6d44334f394))
+
+#### Code refactoring
+
+* Consolidated core subscriber configs into a single file ([#4294](https://github.com/newrelic/node-newrelic/pull/4294)) ([a6adc6d](https://github.com/newrelic/node-newrelic/commit/a6adc6dcabb77042b84be0464bf545f8508ed4e9))
+* Migrated core `crypto` instrumentation to subscriber-based ([#4293](https://github.com/newrelic/node-newrelic/pull/4293)) ([8848d84](https://github.com/newrelic/node-newrelic/commit/8848d845abc3a6a5dc2497a03813ebc16cc4e6f9))
+* Refactored `zlib` instrumentation to be subscriber based ([#4299](https://github.com/newrelic/node-newrelic/pull/4299)) ([e4ede21](https://github.com/newrelic/node-newrelic/commit/e4ede21329b5f04bcd825be6e6d9b1514ee20133))
+* Removed reliance on `@opentelemetry/core` for hybrid agent ([#4295](https://github.com/newrelic/node-newrelic/pull/4295)) ([8a83507](https://github.com/newrelic/node-newrelic/commit/8a8350796119cc65999576db1f8922e788ca7258))
+
+#### Documentation
+
+* Updated compatibility report ([#4282](https://github.com/newrelic/node-newrelic/pull/4282)) ([87be369](https://github.com/newrelic/node-newrelic/commit/87be369f49e9c39b608a341d9e24d6830bdac3e1))
+
+#### Miscellaneous chores
+
+* Fixes issues in CI ([#4285](https://github.com/newrelic/node-newrelic/pull/4285)) ([6e61b03](https://github.com/newrelic/node-newrelic/commit/6e61b03243b9d51225b24a0559307f6f7b94fbae))
+
+#### Tests
+
+* Replaced test helper with native Promise.withResolvers ([#4301](https://github.com/newrelic/node-newrelic/pull/4301)) ([be5f3f3](https://github.com/newrelic/node-newrelic/commit/be5f3f3ce9222f330e5982de78347a57a7565dd3))
+
+### v14.5.0 (2026-09-16)
+
+#### Features
+
+* Added `browser_monitoring.version` configuration option ([#4269](https://github.com/newrelic/node-newrelic/pull/4269)) ([b62ca00](https://github.com/newrelic/node-newrelic/commit/b62ca002441bcae50b4fd235eb046cdfa6a55bbe))
+  * When this is set, it will pin the browser agent version when using `newrelic.getBrowserTimingHeader` to the version selected.
+  * If you specify a version that is no longer supported or invalid, it will not resolve to any browser agent when calling `newrelic.getBrowserTimingHeader`.
+
+#### Bug fixes
+
+* Updated `undici` instrumentation to not attempt to create an external segment when transaction is not active ([#4278](https://github.com/newrelic/node-newrelic/pull/4278)) ([d634246](https://github.com/newrelic/node-newrelic/commit/d634246308c1a4d359eae59a035687860864969e))
+* Updated `http2` instrumentation to properly inject `traceparent` header with external segment id ([#4279](https://github.com/newrelic/node-newrelic/pull/4279)) ([ccd7800](https://github.com/newrelic/node-newrelic/commit/ccd7800b6dd64ef9cf5cefaaef86509206d56ab9))
+
+#### Code refactoring
+
+* Refactored `child_process` instrumentation to use tracing channel instead of `Shim` ([#4212](https://github.com/newrelic/node-newrelic/pull/4212)) ([5a39c38](https://github.com/newrelic/node-newrelic/commit/5a39c389237278955a82da5ddbd80b520ef20e6e))
+* Refactored `dns` instrumentation to subscribe to events emitted ([#4224](https://github.com/newrelic/node-newrelic/pull/4224)) ([c04289f](https://github.com/newrelic/node-newrelic/commit/c04289fbf3707ad5a36a000df3fdfb79234ac777))
+
+#### Miscellaneous chores
+
+* Regenerated agent config json schema ([#4275](https://github.com/newrelic/node-newrelic/pull/4275)) ([c2107ed](https://github.com/newrelic/node-newrelic/commit/c2107edac8e7739ebf37a26fb0ea1bf14b6246aa))
+* Update secret naming ([#4277](https://github.com/newrelic/node-newrelic/pull/4277)) ([09f5b25](https://github.com/newrelic/node-newrelic/commit/09f5b25c1be78828a326854df0c56cc68a0aed80))
+
+#### Tests
+
+* Added `legacy-peer-deps` to google adk tests to avoid peer dep conflict ([#4280](https://github.com/newrelic/node-newrelic/pull/4280)) ([e4a6b35](https://github.com/newrelic/node-newrelic/commit/e4a6b353e3778c33cafcb508c476eec47ea110b9))
+
+### v14.4.0 (2026-09-10)
+
+#### Features
+
+* Added support for `MessageBroker/Kafka/Cluster/{cluster_id}/{Produce|Consume}/{topic_name}` metrics ([#4263](https://github.com/newrelic/node-newrelic/pull/4263)) ([3be98f1](https://github.com/newrelic/node-newrelic/commit/3be98f12810535e0abf274a99f6cafad9e19284a))
+* Updated GCP hostname to support more Cloud Run instance types ([#4256](https://github.com/newrelic/node-newrelic/pull/4256)) ([67bfd0d](https://github.com/newrelic/node-newrelic/commit/67bfd0dc79a189ddd984a13e217081d2e73167c0))
+
+#### Bug fixes
+
+* Fixed duplicated router mount path in transaction names for async middleware ([#4272](https://github.com/newrelic/node-newrelic/pull/4272)) ([51a3bf4](https://github.com/newrelic/node-newrelic/commit/51a3bf47c6637a194fc053bf41a7726a83be7316))
+* Fixed otlp payload format for metrics in AWS Lambda ([#4270](https://github.com/newrelic/node-newrelic/pull/4270)) ([5d29078](https://github.com/newrelic/node-newrelic/commit/5d29078440166211e492739c6a40913a45292713)) (upcoming feature; not yet available)
+
+#### Documentation
+
+* Updated compatibility report ([#4273](https://github.com/newrelic/node-newrelic/pull/4273)) ([40b3172](https://github.com/newrelic/node-newrelic/commit/40b3172d6bad62ddafe5dc55056f7404b87dbefe)) ([#4267](https://github.com/newrelic/node-newrelic/pull/4267)) ([b4fa928](https://github.com/newrelic/node-newrelic/commit/b4fa928b4e040c2f15a7b36cbc4f6f772f803a45)) ([#4253](https://github.com/newrelic/node-newrelic/pull/4253)) ([9fe7038](https://github.com/newrelic/node-newrelic/commit/9fe70387978e9c4dc491b738970f848a4f12982f))
+
+#### Miscellaneous chores
+
+* Deprecated `utilization.gcp_use_instance_as_host` in favor of `utilization.gcp_cloud_run.use_instance_as_host` ([#4258](https://github.com/newrelic/node-newrelic/pull/4258)) ([450303e](https://github.com/newrelic/node-newrelic/commit/450303edc0639e04da08ed5d3b5677b6befa83b3))
+
+### v14.3.10 (2026-09-01)
+
+#### Bug fixes
+
+* Prevented duplicate external segments when undici negotiates HTTP/2 ([#4251](https://github.com/newrelic/node-newrelic/pull/4251)) ([c94b81b](https://github.com/newrelic/node-newrelic/commit/c94b81b7e035fa6f6d2bc04bbe44410e3618bc09))
+
+#### Code refactoring
+
+* Split `BedrockResponse` and `BedrockCommand` into `Converse` and `InvokeModel` variants ([#4235](https://github.com/newrelic/node-newrelic/pull/4235)) ([8235cf5](https://github.com/newrelic/node-newrelic/commit/8235cf5566b02481f215da40211d12fe119b1aa7))
+* Updated Claude detection logic in `InvokeModelCommand` ([#4245](https://github.com/newrelic/node-newrelic/pull/4245)) ([b090344](https://github.com/newrelic/node-newrelic/commit/b090344f510067efbc650d62bb7b1f62a8ac2537))
+
+#### Documentation
+
+* Updated compatibility report ([#4249](https://github.com/newrelic/node-newrelic/pull/4249)) ([f69eecd](https://github.com/newrelic/node-newrelic/commit/f69eecd16b81e7969988299fa23afd9f183b56fa))
+
+#### Miscellaneous chores
+
+* Pinned nestjs to unblock CI ([#4248](https://github.com/newrelic/node-newrelic/pull/4248)) ([44abb5d](https://github.com/newrelic/node-newrelic/commit/44abb5d4de48b4a17dd46a3ee5378b0467013dd1))
+
+#### Tests
+
+* Added `type: module` for `@nestjs/core` tests, including version 12 ([#4252](https://github.com/newrelic/node-newrelic/pull/4252)) ([7971d05](https://github.com/newrelic/node-newrelic/commit/7971d056d11a70a1f67e71e7f3f5e4536850d5c7))
+
+### v14.3.9 (2026-08-24)
+
+#### Bug fixes
+
+* Fixed @google/adk instrumentation for v2.0.0 ([#4243](https://github.com/newrelic/node-newrelic/pull/4243)) ([6f850a8](https://github.com/newrelic/node-newrelic/commit/6f850a868ccc557339b42c30b4551126deadb584))
+
+#### Code refactoring
+
+* Co-located Attributes and PrioritizedAttributes under lib/attributes/ ([#4227](https://github.com/newrelic/node-newrelic/pull/4227)) ([c2a01d2](https://github.com/newrelic/node-newrelic/commit/c2a01d29bbb71ac893596e0e6091e5247c431c12))
+
+#### Miscellaneous chores
+
+* Added workflows to generate a config schema and version before agent release ([#4161](https://github.com/newrelic/node-newrelic/pull/4161)) ([56987ca](https://github.com/newrelic/node-newrelic/commit/56987ca517f32eea144e55a127686ddc2fe1bf19))
+
+### v14.3.8 (2026-08-19)
+
+#### Bug fixes
+
+* Updated `openai` instrumentation to support `>=7.5.0` ([#4228](https://github.com/newrelic/node-newrelic/pull/4228)) ([062b569](https://github.com/newrelic/node-newrelic/commit/062b569664bec61c263c7ba33fda17e1baa85735))
+
+#### Performance improvements
+
+* Skipped gRPC/http2 instrumentation when parent segment is opaque ([#4220](https://github.com/newrelic/node-newrelic/pull/4220)) ([ed2e9f3](https://github.com/newrelic/node-newrelic/commit/ed2e9f3c182f7073000e99a2d54add8affcbbaed))
+
+#### Code refactoring
+
+* Include all `.mjs` equivalents in `openai` instrumentation to properly function when using ESM ([#4232](https://github.com/newrelic/node-newrelic/pull/4232)) ([55c4dd9](https://github.com/newrelic/node-newrelic/commit/55c4dd9d91a80c457741f94086e2c386ae2f9ba1))
+* Removed dead `wrapNoSegment` code from `zlib` instrumentation ([#4231](https://github.com/newrelic/node-newrelic/pull/4231)) ([56207ec](https://github.com/newrelic/node-newrelic/commit/56207ecc6cd8c5365db00c33774aeb042d425332))
+
+#### Documentation
+
+* Updated compatibility report ([#4225](https://github.com/newrelic/node-newrelic/pull/4225)) ([679245c](https://github.com/newrelic/node-newrelic/commit/679245cd775da8d7407f4069f75d688c1f2e47fe))
+
+#### Miscellaneous chores
+
+* Improved docs and benchmarking for attributes ([#4207](https://github.com/newrelic/node-newrelic/pull/4207)) ([7dbcd04](https://github.com/newrelic/node-newrelic/commit/7dbcd044f4bcbe9d72d331e7b5a494c085efca57))
+
+#### Tests
+
+* Fixed flaky CpuProfiler and sampling-rate integration tests ([#4229](https://github.com/newrelic/node-newrelic/pull/4229)) ([edfe9a6](https://github.com/newrelic/node-newrelic/commit/edfe9a640d4c43381da6c54ff3250d05d429a6a1))
+* Widened error margin in ratio-based-sampler flaky test ([#4234](https://github.com/newrelic/node-newrelic/pull/4234)) ([ff0496e](https://github.com/newrelic/node-newrelic/commit/ff0496e49195e848ddd9335a951c5b0f5ea6d391))
+
+#### Continuous integration
+
+* Updated `child_process.exec` calls to `child_process.execFile` in `bin/npm-commands.js` ([#4211](https://github.com/newrelic/node-newrelic/pull/4211)) ([f07a8cd](https://github.com/newrelic/node-newrelic/commit/f07a8cd5b56db23df6048fb38b76e92fbc95cac0))
+
+### v14.3.7 (2026-08-10)
+
+#### Bug fixes
+
+* Fixed OTEL metrics wrapping meters too many times ([#4216](https://github.com/newrelic/node-newrelic/pull/4216)) ([6f917ad](https://github.com/newrelic/node-newrelic/commit/6f917adb92f325f4637bb94adbc02ee75720a7e7))
+* Improved Apollo server resolver instrumentation performance ([#4206](https://github.com/newrelic/node-newrelic/pull/4206)) ([2a394e8](https://github.com/newrelic/node-newrelic/commit/2a394e81b0bce7bd616bae31797f2e26f8676bf5))
+* Updated `getBrowserTimingHeader` to handle when a transaction may not be finalized and still return the browser agent string without transaction intrinsics ([#4209](https://github.com/newrelic/node-newrelic/pull/4209)) ([fbf636b](https://github.com/newrelic/node-newrelic/commit/fbf636b3fe64df466355cacfacdd9020e616eb15))
+
+#### Performance improvements
+
+* Skipped context wrapping for skipped Apollo resolver segments ([#4210](https://github.com/newrelic/node-newrelic/pull/4210)) ([6bf954b](https://github.com/newrelic/node-newrelic/commit/6bf954bc60f4dbc626a59451340a51a6210ab917))
+
+#### Documentation
+
+* Updated compatibility report ([#4202](https://github.com/newrelic/node-newrelic/pull/4202)) ([8811cd2](https://github.com/newrelic/node-newrelic/commit/8811cd270c2a2f290f7c52a16052b839e7e06417))
+
+### v14.3.6 (2026-08-04)
+
+#### Bug fixes
+
+* Updated `addAttribute` to only increase the attributeCount for new attributes ([#4184](https://github.com/newrelic/node-newrelic/pull/4184)) ([f05df73](https://github.com/newrelic/node-newrelic/commit/f05df737a5dca6fd5d8e1f1e891d887f65205327))
+
+#### Documentation
+
+* Updated compatibility report ([#4191](https://github.com/newrelic/node-newrelic/pull/4191)) ([5b5f8ce](https://github.com/newrelic/node-newrelic/commit/5b5f8cef8369e8b512d8495de62433e4941d3714))
+
+#### Miscellaneous chores
+
+* Reverted `clean-jsdoc-theme` to 4.x ([#4192](https://github.com/newrelic/node-newrelic/pull/4192)) ([e7b3ddf](https://github.com/newrelic/node-newrelic/commit/e7b3ddfc9d50fef12532d07d9ccd994a3372e871))
+
+#### Tests
+
+* Added unit tests for `bin/git-commands.js` ([#4199](https://github.com/newrelic/node-newrelic/pull/4199)) ([a8bb311](https://github.com/newrelic/node-newrelic/commit/a8bb3116c2a3fde2dac318ed826e715e4a61af7f))
+* Sync cross agent tests and fix related DT assertions ([#4198](https://github.com/newrelic/node-newrelic/pull/4198)) ([44388c0](https://github.com/newrelic/node-newrelic/commit/44388c08c7b1eda6b3c2d752e6b054af3ece1675))
+
+### v14.3.5 (2026-08-03)
+
+#### Bug fixes
+
+* Set `ignoreApdex` warning log to `trace`-level ([#4188](https://github.com/newrelic/node-newrelic/pull/4188)) ([79bac5e](https://github.com/newrelic/node-newrelic/commit/79bac5e830eca387eb617c2b2f60246c90dbad43))
+
+#### Documentation
+
+* Updated compatibility report ([#4176](https://github.com/newrelic/node-newrelic/pull/4176)) ([3886190](https://github.com/newrelic/node-newrelic/commit/38861907eef782fc8d4e521621d9f90c21e30b86))
+
+#### Miscellaneous chores
+
+* Removed `update-snyk-prs` workflow ([#4185](https://github.com/newrelic/node-newrelic/pull/4185)) ([ab7722c](https://github.com/newrelic/node-newrelic/commit/ab7722cc886054445cc31c87ff73d2e4c2fb4bfb))
+* Restored scrollbar on API docs ([#4181](https://github.com/newrelic/node-newrelic/pull/4181)) ([3ea46fb](https://github.com/newrelic/node-newrelic/commit/3ea46fbeb12c7600a8adf1d8472c71589d0a1969))
+* Updated all `@opentelemetry` deps from `0.219.0` to `0.221.0` ([#4179](https://github.com/newrelic/node-newrelic/pull/4179)) ([62c3779](https://github.com/newrelic/node-newrelic/commit/62c37799f264af591bbae4d7cfabb2ea6788ae64))
+* Updated conventional commit dev deps to latest ([#4178](https://github.com/newrelic/node-newrelic/pull/4178)) ([f4db525](https://github.com/newrelic/node-newrelic/commit/f4db525fb0465e8aa1869e2c3e167151883f2a4f))
+* Updated out of date dev deps: `@matteo.collina/tspl`, `@newrelic/eslint-config`, `@slack/bolt`, `borp`, `c8`, `clean-jsdoc-theme`, `lint-staged` and `proxyquire` ([#4175](https://github.com/newrelic/node-newrelic/pull/4175)) ([e978762](https://github.com/newrelic/node-newrelic/commit/e9787624ec4a2ce2823fec8652bfab02274cb94a))
+
+#### Continuous integration
+
+* Added a poll npm workflow to ensure new package version exists before executing any dependent workflows ([#4182](https://github.com/newrelic/node-newrelic/pull/4182)) ([224c4f9](https://github.com/newrelic/node-newrelic/commit/224c4f944f4445b962d87bb10db5805bd13725d5))
+* Normalized how we retrieve agent version from package.json ([#4183](https://github.com/newrelic/node-newrelic/pull/4183)) ([949e620](https://github.com/newrelic/node-newrelic/commit/949e620bd1e4ecb9268b0713fd6a53f98af53789))
+
+### v14.3.4 (2026-07-27)
+
+#### Features
+
+* Collect OTEL metrics in AWS Lambda ([#4166](https://github.com/newrelic/node-newrelic/pull/4166)) ([204c166](https://github.com/newrelic/node-newrelic/commit/204c16626ec346e7c5b995863305e8d4f6bc6e6f))
+    * Feature not generally available as of 2026-07-27. A future release will enable the necessary plumbing for full functionality.
+
+#### Bug fixes
+
+* Updated `openai` instrumentation to cache the results of `responses.parse` chain on openai custom promises ([#4173](https://github.com/newrelic/node-newrelic/pull/4173)) ([35dce3c](https://github.com/newrelic/node-newrelic/commit/35dce3cf06740c33333ed5998df546e59f822dc8))
+
+#### Documentation
+
+* Fixed typos in 14.3.1 release ([#4170](https://github.com/newrelic/node-newrelic/pull/4170)) ([dd84830](https://github.com/newrelic/node-newrelic/commit/dd848300f754650a0e1f7a1a500d5f836b7dfb8b))
+* Updated compatibility report ([#4165](https://github.com/newrelic/node-newrelic/pull/4165)) ([33eceac](https://github.com/newrelic/node-newrelic/commit/33eceacf0f7a5ec8bae957da21d978814bca81bb))
+
+#### Miscellaneous chores
+
+* Updated `@apm-js-collab/tracing-hooks` to `0.13.0` ([#4167](https://github.com/newrelic/node-newrelic/pull/4167)) ([153acec](https://github.com/newrelic/node-newrelic/commit/153acecc4ea7c7dc786c08020a57fb88efb2a8de))
+* Updated `@octokit/rest` to `22.x` ([#4172](https://github.com/newrelic/node-newrelic/pull/4172)) ([55d90c2](https://github.com/newrelic/node-newrelic/commit/55d90c2ac6f7657626b56754ff96f522229fd5fb))
+* Updated `commander` to v15 and added unit tests for scripts that use it ([#4168](https://github.com/newrelic/node-newrelic/pull/4168)) ([e409204](https://github.com/newrelic/node-newrelic/commit/e409204b29be52620ab09ba9a5fe55125329b44c))
+
+#### Tests
+
+* Updated `runnables-streaming.js` to consume the stream on the tracking metrics tests to avoid test time outs ([#4169](https://github.com/newrelic/node-newrelic/pull/4169)) ([1a132bf](https://github.com/newrelic/node-newrelic/commit/1a132bf489a453903f1e6b95204a591b88812e4b))
+
+### v14.3.3 (2026-07-22)
+
+#### Features
+
+* Add internal OTEL API to agent ([#4147](https://github.com/newrelic/node-newrelic/pull/4147)) ([b014f82](https://github.com/newrelic/node-newrelic/commit/b014f82c83a34b73ab65e7d5144b464dcf3e56ea))
+* Collect on-CPU time alongside wall time in `CpuProfiler` ([#4146](https://github.com/newrelic/node-newrelic/pull/4146)) ([3b440f3](https://github.com/newrelic/node-newrelic/commit/3b440f354e8e142c84565e8a55f181aaef2df77c))
+
+#### Bug fixes
+
+* Avoid unconditional @opentelemetry/core require on agent startup ([#4163](https://github.com/newrelic/node-newrelic/pull/4163)) ([f31bbe4](https://github.com/newrelic/node-newrelic/commit/f31bbe4636901fe517a81b675788ed390781ae91))
+
+#### Documentation
+
+* Updated compatibility report ([#4160](https://github.com/newrelic/node-newrelic/pull/4160)) ([8ba64fb](https://github.com/newrelic/node-newrelic/commit/8ba64fbd6f0602e9f3b8e499dc1e7de6d93edd1e))
+
+### v14.3.2 (2026-07-21)
+
+#### Bug fixes
+
+* Resolved mongodb host details at operation time to support `mongodb+srv://` clients ([#4155](https://github.com/newrelic/node-newrelic/pull/4155)) ([7fd4443](https://github.com/newrelic/node-newrelic/commit/7fd444346285779a55c2a3147ca9c86f71b29cd2))
+
+#### Documentation
+
+* Updated compatibility report ([#4156](https://github.com/newrelic/node-newrelic/pull/4156)) ([6058cf7](https://github.com/newrelic/node-newrelic/commit/6058cf77551b5e728bb75bbe0d2e2239f545e778)) ([#4153](https://github.com/newrelic/node-newrelic/pull/4153)) ([136f65a](https://github.com/newrelic/node-newrelic/commit/136f65adccd558616cf812efd24d9376ade546d6))
+
+#### Miscellaneous chores
+
+* Translated OTel exception into timed event ([#4151](https://github.com/newrelic/node-newrelic/pull/4151)) ([36daebe](https://github.com/newrelic/node-newrelic/commit/36daebe14ad7b7426456d7bee529087389511459))
+
+#### Tests
+
+* Fixed srv-connect DNS patching across mongodb driver versions ([#4158](https://github.com/newrelic/node-newrelic/pull/4158)) ([ca4a7b0](https://github.com/newrelic/node-newrelic/commit/ca4a7b00d86b7af9945463a8736c91567960fa42))
+
+### v14.3.1 (2026-07-20)
+
+#### Bug fixes
+
+* Handled `$0` as a replacement in a metric normalization rule to return the matched string in its entirety ([#4150](https://github.com/newrelic/node-newrelic/pull/4150)) ([b57fcc8](https://github.com/newrelic/node-newrelic/commit/b57fcc87d741122e87285f73b1c68f566ec9f1db))
+
+#### Documentation
+
+* Updated compatibility report ([#4137](https://github.com/newrelic/node-newrelic/pull/4137)) ([3c1a2b3](https://github.com/newrelic/node-newrelic/commit/3c1a2b3a8b9ee2157c4bc774873a48ed6079334e))
+
+
+#### Miscellaneous chores
+
+* Attached serverless mode config to agent instance ([#4140](https://github.com/newrelic/node-newrelic/pull/4140)) ([7a3592f](https://github.com/newrelic/node-newrelic/commit/7a3592f58354a824cf7d148173cb38e64bd8beed))
+* Removed dead `otlp_endpoint` config option ([#4142](https://github.com/newrelic/node-newrelic/pull/4142)) ([05b072f](https://github.com/newrelic/node-newrelic/commit/05b072f8b5c7b4ec18b36c0aa4267a86f5966b9c))
+
+#### Continuous integration
+
+* Reverted CI schedules to previous schedules ([#4139](https://github.com/newrelic/node-newrelic/pull/4139)) ([b6f8708](https://github.com/newrelic/node-newrelic/commit/b6f8708530574d600371cc639a26ab655322e47f))
+
+### v14.3.0 (2026-07-14)
+
+#### Features
+
+* Added source mapping support to heap profiler ([#4122](https://github.com/newrelic/node-newrelic/pull/4122)) ([dcee39f](https://github.com/newrelic/node-newrelic/commit/dcee39fa76a102389f9dd7c186461346ef4fa265))
+* Added source mapping support to CPU (wall time) profiler ([#4095](https://github.com/newrelic/node-newrelic/pull/4095)) ([f6123bc](https://github.com/newrelic/node-newrelic/commit/f6123bc939afc0122443fda3eab7d9e842dcbfef))
+* Added `otlp_resource_attributes` to all outgoing OpenTelemetry metrics calls ([#4128](https://github.com/newrelic/node-newrelic/pull/4128)) ([a0c1c5b](https://github.com/newrelic/node-newrelic/commit/a0c1c5b0f314b7ca35b84f0c6cf8229395c4aa52))
+* Added support for `ai_monitoring.enabled`,`ai_monitoring.streaming.enabled`, and `ai_monitoring.record_content.enabled` to be assigned via server-side config ([#4123](https://github.com/newrelic/node-newrelic/pull/4123)) ([c4d8032](https://github.com/newrelic/node-newrelic/commit/c4d8032bb2fcc7e346854b6ae818bea9e17f7f9f))
+
+#### Bug fixes
+
+* Fixed `bunyan` log forwarding multiple duplicate lines ([#4132](https://github.com/newrelic/node-newrelic/pull/4132)) ([b0f4242](https://github.com/newrelic/node-newrelic/commit/b0f4242098ffe8a63566519707987b588b22f6aa))
+* Fixed OTEL crash when adding exceptions to spans ([#4130](https://github.com/newrelic/node-newrelic/pull/4130)) ([508542e](https://github.com/newrelic/node-newrelic/commit/508542e7cb8f2ad11952171a4e44dc71b2d23f07))
+
+#### Documentation
+
+* Updated compatibility report ([#4125](https://github.com/newrelic/node-newrelic/pull/4125)) ([405b59b](https://github.com/newrelic/node-newrelic/commit/405b59b20ed811b31eadc4a85bf8ff6a64c12edd)) ([#4107](https://github.com/newrelic/node-newrelic/pull/4107)) ([267a964](https://github.com/newrelic/node-newrelic/commit/267a964cffdab4373a9292e035cc877b814f8529))
+
+#### Miscellaneous chores
+
+* Changed `notify-release.yml` schedule with our bot user ([#4135](https://github.com/newrelic/node-newrelic/pull/4135)) ([a9318ae](https://github.com/newrelic/node-newrelic/commit/a9318aec1ff32fd8930431b20df7123f76ced513))
+* Changed `versioned-security-agent.yml` schedule with our bot user ([#4134](https://github.com/newrelic/node-newrelic/pull/4134)) ([d7c6f64](https://github.com/newrelic/node-newrelic/commit/d7c6f64af2747a392ac905a1775aa70642a9f9b6))
+* Changed smoke-test schedule with our bot user ([#4133](https://github.com/newrelic/node-newrelic/pull/4133)) ([400268e](https://github.com/newrelic/node-newrelic/commit/400268e98b9d559c1b46726a91f555aeff706bbe))
+* Sharded the versioned tests w/ security agent workflow ([#4119](https://github.com/newrelic/node-newrelic/pull/4119)) ([fe200c4](https://github.com/newrelic/node-newrelic/commit/fe200c4fc1996ce7b115a7ab76e4b84659758d01))
+* Updated test runner to accept suites as positional parameters ([#4117](https://github.com/newrelic/node-newrelic/pull/4117)) ([ac0985d](https://github.com/newrelic/node-newrelic/commit/ac0985d65291eb24637c90e4d96b0e3aff56ecfc))
+
+#### Tests
+
+* Added more scenarios to winston for constructing loggers ([#4120](https://github.com/newrelic/node-newrelic/pull/4120)) ([ea90fc3](https://github.com/newrelic/node-newrelic/commit/ea90fc30719824c8cdd7de67a9af88257ab97805))
+* Added skip for winston test for ranges that do not support it ([#4121](https://github.com/newrelic/node-newrelic/pull/4121)) ([e75e15e](https://github.com/newrelic/node-newrelic/commit/e75e15e3ca3eb7344f9a9697efe9b49fef96f3af))
+* Applied sampling to `pg-native` tests to reduce the matrix under test ([#4124](https://github.com/newrelic/node-newrelic/pull/4124)) ([b1ad2da](https://github.com/newrelic/node-newrelic/commit/b1ad2da853ee55ebe7477ff6a172e454a76d13bd))
+* Fixed flaky amqplib async-work duration assertions ([#4118](https://github.com/newrelic/node-newrelic/pull/4118)) ([3544237](https://github.com/newrelic/node-newrelic/commit/3544237c908f908aad17cf4d6b713015f186be6e))
+* Removed timing race from common.request unit tests ([#4113](https://github.com/newrelic/node-newrelic/pull/4113)) ([b22c25b](https://github.com/newrelic/node-newrelic/commit/b22c25b56f73b9821710e22988a4cdcbfb06d907))
+
+### v14.2.1 (2026-07-09)
+
+#### Bug fixes
+
+* Updated `winston` instrumenting to assign `handleExceptions` to the first NrTransport to avoid registering duplicate `uncaughtException` handlers ([#4108](https://github.com/newrelic/node-newrelic/pull/4108)) ([d60a48d](https://github.com/newrelic/node-newrelic/commit/d60a48d3b9399d3a084c64cf53c3a62c7a4cab0b))
+  * This would create a linear memory leak because the `NrTransport` objects for loggers no longer in use, would not be freed because of the global `process.on('uncaughtException')` handler
+
+#### Documentation
+
+* Updated compatibility report ([#4099](https://github.com/newrelic/node-newrelic/pull/4099)) ([058fde6](https://github.com/newrelic/node-newrelic/commit/058fde6d64e3606b82875380ba51f9bc44a4b994))
+
+#### Continuous integration
+
+* Pinned CI npm to 11 so native versioned suites build on Node 22 ([#4114](https://github.com/newrelic/node-newrelic/pull/4114)) ([b844e94](https://github.com/newrelic/node-newrelic/commit/b844e94317e573410d96f8971308b2d1535570ca))
+* Removed the 8 minute versioned shard timeout ([#4111](https://github.com/newrelic/node-newrelic/pull/4111)) ([0ef6374](https://github.com/newrelic/node-newrelic/commit/0ef63749b2739d7c7446a6b7c6d3ee80d2d360e5))
+* Attempted to fix memcached CI issue again ([#4098](https://github.com/newrelic/node-newrelic/pull/4098)) ([f67fef5](https://github.com/newrelic/node-newrelic/commit/f67fef5febe71ffab853164aba06c76cd2c6c26d))
+* Shard versioned tests across CI runners ([#4101](https://github.com/newrelic/node-newrelic/pull/4101)) ([1471734](https://github.com/newrelic/node-newrelic/commit/14717345d87ec46a4eba18c513e10e3caed40f7c))
+
+#### Tests
+
+* Added `samples` to prisma and next to cut down on versions under test on packages we recommend using hybrid ageninstrumentation ([#4112](https://github.com/newrelic/node-newrelic/pull/4112)) ([7d8bd7c](https://github.com/newrelic/node-newrelic/commit/7d8bd7cd2e3076d17ad25b75628956d1158fc23a))
+* Resolved `grpc` `proto-loader` from the running suite's `node_modules` ([#4110](https://github.com/newrelic/node-newrelic/pull/4110)) ([5b5a9f8](https://github.com/newrelic/node-newrelic/commit/5b5a9f8d8e0f17557b9f202b0098e2ec84c9e028))
+
+### v14.2.0 (2026-07-07)
+
+#### Features
+
+* Added Node.js 26 support ([#4084](https://github.com/newrelic/node-newrelic/pull/4084)) ([4a7f777](https://github.com/newrelic/node-newrelic/commit/4a7f7775d8598656f84bd1590a80e56458feb185))
+* Added `span_id` and `trace_id` labels to `CpuProfiler` sample data ([#4049](https://github.com/newrelic/node-newrelic/pull/4049)) ([c2b1737](https://github.com/newrelic/node-newrelic/commit/c2b1737ac87a26b7fce6d170597301cf97d26b22))
+* Added new GCP Cloud Run hostname logic to include `K_REVISION` ([#4069](https://github.com/newrelic/node-newrelic/pull/4069)) ([02855dc](https://github.com/newrelic/node-newrelic/commit/02855dc82b636c655e9808b50897b4dc5c7b1bba))
+* Added `profiling.source_mapping.enabled` config option ([#4090](https://github.com/newrelic/node-newrelic/pull/4090)) ([43add80](https://github.com/newrelic/node-newrelic/commit/43add80d07cccb1fd48190a60895d88cbde17b00))
+* Removed `spanId` in outgoing `tracestate` header ([#4091](https://github.com/newrelic/node-newrelic/pull/4091)) ([40a8bf1](https://github.com/newrelic/node-newrelic/commit/40a8bf1682860d11f2bf46fbfdaae840b6f3fa18))
+
+#### Code refactoring
+
+* Refactored `mongodb` instrumentation to subscribe to events emitted ([#4059](https://github.com/newrelic/node-newrelic/pull/4059)) ([d2777ba](https://github.com/newrelic/node-newrelic/commit/d2777ba6b29ab30f1a158e993283029bf40cff86))
+
+#### Documentation
+
+* Updated compatibility report ([#4078](https://github.com/newrelic/node-newrelic/pull/4078)) ([047a063](https://github.com/newrelic/node-newrelic/commit/047a063dd9e21097d2995dbd7f14ee564b96efcd))
+
+#### Miscellaneous chores
+
+* Addressed long standing CI flakes ([#4093](https://github.com/newrelic/node-newrelic/pull/4093)) ([ae973a0](https://github.com/newrelic/node-newrelic/commit/ae973a0d7bfd7da54bd0fe5e68d79fa77b180cfe))
+* Fixed package version resolution on Node 26 ([#4094](https://github.com/newrelic/node-newrelic/pull/4094)) ([73d14a9](https://github.com/newrelic/node-newrelic/commit/73d14a98c3bd678be499e14533e66f86b7b9996b))
+
+#### Continuous integration
+
+* Updated `release-creation` to use `lts/*` for node-version ([#4080](https://github.com/newrelic/node-newrelic/pull/4080)) ([7eaed22](https://github.com/newrelic/node-newrelic/commit/7eaed22f92af2da5db31232b60b5bf35f0ca3e02))
+* Updated `setup-node` job to include `check-latest` to ensure we are getting the latest version of node ([#4079](https://github.com/newrelic/node-newrelic/pull/4079)) ([4a425f6](https://github.com/newrelic/node-newrelic/commit/4a425f692c8eacac1e4967e7517c34605f67ad82))
+
+### v14.1.2 (2026-06-25)
+
+#### Bug fixes
+
+* Fixed Azure functions crashing when they include response headers ([#4070](https://github.com/newrelic/node-newrelic/pull/4070)) ([c88d2b7](https://github.com/newrelic/node-newrelic/commit/c88d2b7da7d723fa63b85d7bd802a7601717155f))
+
+#### Documentation
+
+* Updated compatibility report ([#4067](https://github.com/newrelic/node-newrelic/pull/4067)) ([0ae24b8](https://github.com/newrelic/node-newrelic/commit/0ae24b865d61b0035cffdafbcfc6543cd7dce27d))
+
+### v14.1.1 (2026-06-23)
+
+#### Documentation
+
+* Removed outdated Next.js documentation in repo ([#4060](https://github.com/newrelic/node-newrelic/pull/4060)) ([185bb66](https://github.com/newrelic/node-newrelic/commit/185bb66c6b8c8ddc26c934adccc28bf47e9ddfd9))
+* Updated compatibility report ([#4047](https://github.com/newrelic/node-newrelic/pull/4047)) ([25cbd38](https://github.com/newrelic/node-newrelic/commit/25cbd38f8da143c7c0010634b0282f2409cc0631))
+
+#### Miscellaneous chores
+
+* Added proxy config support to OTEL metrics ([#4041](https://github.com/newrelic/node-newrelic/pull/4041)) ([6c04b8a](https://github.com/newrelic/node-newrelic/commit/6c04b8ab780006ff3e15406a56e9efafa79b1509))
+* Added supportability metrics to OTEL metrics export ([#4051](https://github.com/newrelic/node-newrelic/pull/4051)) ([db6e4e3](https://github.com/newrelic/node-newrelic/commit/db6e4e364e61deb5da33a25d9ce13fb950c01162))
+* Updated min version of `@opentelemetry` `0.x` packages to `^0.219.0` ([#4065](https://github.com/newrelic/node-newrelic/pull/4065)) ([3f58ad0](https://github.com/newrelic/node-newrelic/commit/3f58ad010592fe9909a210f7688bce6f4e72c188))
+
+
+### v14.1.0 (2026-06-02)
+
+#### Features
+
+* Added support for native Next.js OTEL instrumentation via the Hybrid Agent ([#4040](https://github.com/newrelic/node-newrelic/pull/4040)) ([1944f39](https://github.com/newrelic/node-newrelic/commit/1944f395de1a1f23a535b0188502eb257beb8c6a))
+
+#### Bug fixes
+
+* Updated label parser to handle empty values in an object key ([#4004](https://github.com/newrelic/node-newrelic/pull/4004)) ([73c00d7](https://github.com/newrelic/node-newrelic/commit/73c00d746822fa50e763d38302e6307b3e638dc1))
+
+#### Code refactoring
+
+* Migrate `@hapi/hapi` and `@hapi/vision` to subscriber-based ([#3995](https://github.com/newrelic/node-newrelic/pull/3995)) ([54c60a8](https://github.com/newrelic/node-newrelic/commit/54c60a841346737f6e6b42c4910381c0b98552a2))
+* Refactored `koa` instrumentation to subscribe to events emitted ([#4016](https://github.com/newrelic/node-newrelic/pull/4016)) ([e1f6c27](https://github.com/newrelic/node-newrelic/commit/e1f6c27897e3e907d1d9768d73faf0a78f72961b))
+* Updated MiddlewareWrapper `maybeHandleError` to only mark error as handled if there was a previously stored error ([#4032](https://github.com/newrelic/node-newrelic/pull/4032)) ([1b21cc8](https://github.com/newrelic/node-newrelic/commit/1b21cc89ce82055bde96815c8ac216d4af008684))
+
+#### Documentation
+
+* Removed linked to `@newrelic/apollo-server-plugin` as instrumentation was merged into agent ([#4003](https://github.com/newrelic/node-newrelic/pull/4003)) ([9afd9cb](https://github.com/newrelic/node-newrelic/commit/9afd9cb8d721e175f60d31dc7384b752632f9ae5))
+* Moved `apollo-server` docs to the docs website ([#3994](https://github.com/newrelic/node-newrelic/pull/3994)) ([11ca2ae](https://github.com/newrelic/node-newrelic/commit/11ca2ae419ebc616bed4d072641cedb42b48be87))
+* Updated compatibility report ([#4028](https://github.com/newrelic/node-newrelic/pull/4028)) ([b16ad6e](https://github.com/newrelic/node-newrelic/commit/b16ad6e2dfee69e424f1e54ee7f7c69207842339)) ([#4014](https://github.com/newrelic/node-newrelic/pull/4014)) ([3efa1ff](https://github.com/newrelic/node-newrelic/commit/3efa1ff3af27178c410ac7332e714f1d126d07dd)) ([#4002](https://github.com/newrelic/node-newrelic/pull/4002)) ([33a8236](https://github.com/newrelic/node-newrelic/commit/33a82361674d29e53db9b699048c7a7970445d7c))
+
+#### Miscellaneous chores
+
+* Deprecate `instrumentLoadedModule` API ([#4034](https://github.com/newrelic/node-newrelic/pull/4034)) ([306ff86](https://github.com/newrelic/node-newrelic/commit/306ff86e4ffeaaa094c3ee3f93e9248c74d3d4d1))
+* Added audit logging for OTEL metrics ([#4018](https://github.com/newrelic/node-newrelic/pull/4018)) ([494c836](https://github.com/newrelic/node-newrelic/commit/494c8369176994c01e75b5bf1f28ff471654d31a))
+* Added OTEL rule to support Prisma 7 ([#4013](https://github.com/newrelic/node-newrelic/pull/4013)) ([c142c60](https://github.com/newrelic/node-newrelic/commit/c142c60162cb9409946d8a1babb6f59cd569f6ea))
+* Fix ordering of OTEL rules ([#4025](https://github.com/newrelic/node-newrelic/pull/4025)) ([150476a](https://github.com/newrelic/node-newrelic/commit/150476a61cd272a29ed7c03366e879f6eb009298))
+* Refactored OTEL transform rules ([#3999](https://github.com/newrelic/node-newrelic/pull/3999)) ([48ff739](https://github.com/newrelic/node-newrelic/commit/48ff739e47a21a1ac5c0fa5673e8ef4fc4f153fb))
+* Fixed node-version in CI workflow ([#4042](https://github.com/newrelic/node-newrelic/pull/4042)) ([dd05ea9](https://github.com/newrelic/node-newrelic/commit/dd05ea914e157278e56b0887ec89317dcc1852d8))
+* Updated codecov action ([#4039](https://github.com/newrelic/node-newrelic/pull/4039)) ([31b9c84](https://github.com/newrelic/node-newrelic/commit/31b9c8416116c8b04293f53335540729e934c768))
+* Updated remote-method to use audit method of logger ([#4038](https://github.com/newrelic/node-newrelic/pull/4038)) ([0e4507e](https://github.com/newrelic/node-newrelic/commit/0e4507e27a62f880f9748d675d2b2127b1605d0f))
+* Added baseline instructions for Claude bot ([#4036](https://github.com/newrelic/node-newrelic/pull/4036)) ([c8f6649](https://github.com/newrelic/node-newrelic/commit/c8f66496764cab5e3361d4b0b0f21bd889356189))
+* Updated dependencies
+	* Removed unused dev dependencies ([#4005](https://github.com/newrelic/node-newrelic/pull/4005)) ([e00f7d3](https://github.com/newrelic/node-newrelic/commit/e00f7d3132a8d7635a65162d80fd3217edad35f5))
+	* Updated `@apm-js-collab/tracing-hooks` to `0.9.1` ([#4043](https://github.com/newrelic/node-newrelic/pull/4043)) ([f05e5d4](https://github.com/newrelic/node-newrelic/commit/f05e5d473e641ed783ced0b1ef8b2fabc5df3502))
+	* Updated `commander` to latest ([#4021](https://github.com/newrelic/node-newrelic/pull/4021)) ([83b1d58](https://github.com/newrelic/node-newrelic/commit/83b1d5871bd70244ece463cbca23f34cbacfe6d7))
+	* Updated `nock` to latest ([#4022](https://github.com/newrelic/node-newrelic/pull/4022)) ([9bf79ab](https://github.com/newrelic/node-newrelic/commit/9bf79ab23eefabd22a529a26a7d3d75e7ff08a19))
+	* Updated `sinon` to latest ([#4020](https://github.com/newrelic/node-newrelic/pull/4020)) ([0ced304](https://github.com/newrelic/node-newrelic/commit/0ced30446a9be2711c96c0afa6453e6b87c014ad))
+	* Updated `protobufjs` to latest ([#4006](https://github.com/newrelic/node-newrelic/pull/4006)) ([45c61f3](https://github.com/newrelic/node-newrelic/commit/45c61f3624945553bfa5aac331c577255827f7bc))
+	* Upgraded `glob` to 13 ([#4008](https://github.com/newrelic/node-newrelic/pull/4008)) ([3053545](https://github.com/newrelic/node-newrelic/commit/3053545aa3c1ed673255887448b65f20137d670e))
+	* Upgraded `got` and `rimraf` to latest ([#4007](https://github.com/newrelic/node-newrelic/pull/4007)) ([b967593](https://github.com/newrelic/node-newrelic/commit/b9675938bfa0165b54f3df583577bfd36c70cdcd))
+
+#### Tests
+
+* Add stable `http.request` shim so AWS test agent setup works with smithy >=4.7.3 ([#4010](https://github.com/newrelic/node-newrelic/pull/4010)) ([c5fd80a](https://github.com/newrelic/node-newrelic/commit/c5fd80aeeae88f3ada7cd27219832cec49765040))
+* Added an undici versioned test to assert behavior with using a self signed cert and `undici.Agent` ([#4026](https://github.com/newrelic/node-newrelic/pull/4026)) ([27507bc](https://github.com/newrelic/node-newrelic/commit/27507bc3678dd03ab232892be33959622b34a210))
+* Refactor `mongodb-esm` tests to test `>=4.1.4` ([#4023](https://github.com/newrelic/node-newrelic/pull/4023)) ([d85767f](https://github.com/newrelic/node-newrelic/commit/d85767fa83e300610bfbe3a4b3e2e3d5ab8a6b91))
+* Removed reliance on `glob` in lieu of `fs.glob` ([#4019](https://github.com/newrelic/node-newrelic/pull/4019)) ([204f124](https://github.com/newrelic/node-newrelic/commit/204f1242810135f24ae6e3b9543cd227c813b16d))
+* Updated undici.Agent versioned test to skip using custom dispatcher on versions <5.2.0 as it was not supported ([#4029](https://github.com/newrelic/node-newrelic/pull/4029)) ([08cd079](https://github.com/newrelic/node-newrelic/commit/08cd07907748bf4deb2259d8e6572dcb49d51ad9))
+
+### v14.0.0 (2026-05-18)
+#### ⚠ BREAKING CHANGES
+
+This version of the Node.js agent is a SemVer MAJOR update and contains the following breaking changes. MAJOR versions may drop support for language runtimes that have reached End-of-Life according to the maintainer. Additionally, MAJOR versions may drop support for and remove certain instrumentation. For more details on these changes please see the [migration guide](https://docs.newrelic.com/docs/apm/agents/nodejs-agent/installation-configuration/update-nodejs-agent/).
+
+* Dropped support for Node.js 20
+* Migrated `@apollo/sever` instrumentation from a plugin(`@newrelic/apollo-server-plugin`) to traditional instrumentation
+* Removed Cross Application Tracing(CAT) functionality
+* Removed support for License, Application, and Security Policies(LASP)
+* Removed instrumentation for `koa-route`
+* Removed instrumentation for `koa-router`
+* Removed `shim.prefixRouteParameters` as the logic was previously moved to when a transaction ends
+* Removed creating `MySQL Pool#query` segments
+* Removed `shim.argsToArray`
+* Updated minimum supported version of `@nestjs/cli` and `@nestjs/core` to `10.0.0`
+* Updated minimum supported version of `next` to 14
+* Updated minimum supported version of `bluebird` to `3.0.0`
+* Updated minimum supported version of `mysql2` to `3.0.0`
+* Updated minimum supported version for `cassandra-driver` to `4.0.0`
+* Dropped support for `fastify` 3.x
+* Updated `config.distributed_tracing.exclude_newrelic_header` to be set to `true` by default
+
+#### Features
+
+* Dropped support for `fastify` 3.x ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([720979b](https://github.com/newrelic/node-newrelic/commit/720979bccb65c93a143d1e069a32904bff78f02b))
+* Dropped support for Node.js 20 ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([5306223](https://github.com/newrelic/node-newrelic/commit/530622314532e3c7eb4d8c3685e0b1974df61b8f))
+* Migrated `@apollo/sever` instrumentation from a plugin(`@newrelic/apollo-server-plugin`) to traditional instrumentation ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([736e0a4](https://github.com/newrelic/node-newrelic/commit/736e0a40b78224e32e263a3aa0264c150d29982d))
+* Removed `shim.argsToArray` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([9183d29](https://github.com/newrelic/node-newrelic/commit/9183d29c456aba6ad003bc0a365c14d9b5d3044c))
+* Removed `shim.prefixRouteParameters` as the logic was previously moved to when a transaction ends ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([9f1408e](https://github.com/newrelic/node-newrelic/commit/9f1408e26b168733644b3c9160dc45726c4b0034))
+* Removed creating `MySQL Pool#query` segments ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([1d5a6dd](https://github.com/newrelic/node-newrelic/commit/1d5a6dde7f5c1280079cdca859cc5a2fc3121556))
+* Removed Cross Application Tracing(CAT) functionality ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([a87ed4d](https://github.com/newrelic/node-newrelic/commit/a87ed4dbd3aad072de81475601844efebd8353ac))
+* Removed instrumentation for `koa-route` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([40c10d9](https://github.com/newrelic/node-newrelic/commit/40c10d90fdebd08dba7bb8e99856def93093267a))
+* Removed instrumentation for `koa-router` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([038ecc7](https://github.com/newrelic/node-newrelic/commit/038ecc749a0fd5d2cdd0ba6b5b0c9537f04a3208))
+* Removed support for License, Application, and Security Policies(LASP) ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([bc09485](https://github.com/newrelic/node-newrelic/commit/bc094850bd18daf6be047615ad71c4dc13a7ec85))
+* Updated `config.distributed_tracing.exclude_newrelic_header` to be set to `true` by default ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([774ce08](https://github.com/newrelic/node-newrelic/commit/774ce0805ddefd4a6e89d8635183d31e2d7e1d3a))
+* Updated minimum supported version for `cassandra-driver` to `4.0.0` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([419337a](https://github.com/newrelic/node-newrelic/commit/419337a78d126467cbf4fc70b94ec293fb919bbf))
+* Updated minimum supported version of `@nestjs/cli` and `@nestjs/core` to `10.0.0` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([120e6de](https://github.com/newrelic/node-newrelic/commit/120e6deef05c940baea52656dd04fdd992e9061d))
+* Updated minimum supported version of `bluebird` to `3.0.0` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([369f920](https://github.com/newrelic/node-newrelic/commit/369f920a86b81980552fe97c708b1aeb3a70771f))
+* Updated minimum supported version of `mysql2` to `3.0.0` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([2861406](https://github.com/newrelic/node-newrelic/commit/2861406c6d9d41f71dab2332d1fd22c27ddfda7c))
+* Updated minimum supported version of `next` to 14 ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([80c5c0c](https://github.com/newrelic/node-newrelic/commit/80c5c0ca1ffdf2c2fa6d4abf74c8b7c3e2024a2e))
+
+#### Code refactoring
+
+* Updated how exclusive time and trace total time is calculated ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([b227ed6](https://github.com/newrelic/node-newrelic/commit/b227ed6975b077a8e16cffafc781a14d55636059))
+* Updated instances of `tracer.bindFunction` with `tracer.runInContext` to improve performance in hot paths ([#3811](https://github.com/newrelic/node-newrelic/pull/3811)) ([5d77085](https://github.com/newrelic/node-newrelic/commit/5d77085b89e98bb1e09a9206a5d5656cdc410c2d))
+
+#### Documentation
+
+* Updated compatibility report ([#3990](https://github.com/newrelic/node-newrelic/pull/3990)) ([f3bb380](https://github.com/newrelic/node-newrelic/commit/f3bb380770e575e1ef3600e6601ddbf944b189ea))
+
+#### Miscellaneous chores
+
+* Removed `husky` in lieu of git hooks, added security hardened options to `npm install` ([#3988](https://github.com/newrelic/node-newrelic/pull/3988)) ([e3a7dda](https://github.com/newrelic/node-newrelic/commit/e3a7ddaee58f393cf347d812fed6b4c6ab1505f0))
+* Updated production dependencies to the latest ([#3996](https://github.com/newrelic/node-newrelic/pull/3996)) ([b710bac](https://github.com/newrelic/node-newrelic/commit/b710bacff2231c8038b792ac4c7a570991566835))
+
+#### Tests
+
+* Added `minSupported` to the nest js versioned tests package.json to ensure the compatibility report will show we support `@nestjs/core` ([#3982](https://github.com/newrelic/node-newrelic/pull/3982)) ([bfa4aa1](https://github.com/newrelic/node-newrelic/commit/bfa4aa1d7b1fa60b8ac0da221f132124fb31ea6d))
+* Added prisma 7 tests ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([116ee9c](https://github.com/newrelic/node-newrelic/commit/116ee9cd006d378afba1922d8daa27e213d1f6ab))
+* Moved versioned test runner code from `@newrelic/test-utilties` to agent ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([d4f9a0c](https://github.com/newrelic/node-newrelic/commit/d4f9a0ce27364b7cfb723fa6a7c56a5ccdc07b68))
+* Removed `@newrelic/test-utilities` ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([1751147](https://github.com/newrelic/node-newrelic/commit/1751147503c9ff971208c2977912d7298e9e923f))
+* Decrease smoke-like esm tests' sample size ([#3986](https://github.com/newrelic/node-newrelic/pull/3986)) ([40669fb](https://github.com/newrelic/node-newrelic/commit/40669fbc157d65b53a4e5b7c22061ede7f26e630))
+* Fixed `test/lib/get-package-version.js` ([#3993](https://github.com/newrelic/node-newrelic/pull/3993)) ([5d31f08](https://github.com/newrelic/node-newrelic/commit/5d31f08fb542f7b58bf89457f8a30255511ee9e0))
+* Fixed version lookup issue in aws-sdk-v3 tests ([#3992](https://github.com/newrelic/node-newrelic/pull/3992)) ([7be3f4a](https://github.com/newrelic/node-newrelic/commit/7be3f4ab5a69fa7563752f584704e59cf6a863d2))
+* Restructure `aws-sdk-v3` test runner to use `groupedDependencies` ([#3984](https://github.com/newrelic/node-newrelic/pull/3984)) ([fc67490](https://github.com/newrelic/node-newrelic/commit/fc674909e176f0f5305a0798c14d3c8447e58155))
+* Updated a few versioned test stanzas to reduce the number of combinations it runs ([#3991](https://github.com/newrelic/node-newrelic/pull/3991)) ([d606305](https://github.com/newrelic/node-newrelic/commit/d6063055ebd034deabd2f2c3f1acba8162a5bd44))
+
+#### Continuous integration
+
+* Added `contents: write` to `post-release` to allow commit/push of api docs ([#3978](https://github.com/newrelic/node-newrelic/pull/3978)) ([90c4e61](https://github.com/newrelic/node-newrelic/commit/90c4e61ac304715dc0848aad091ec1725e057367))
+* Updated remaining actions so they are running on Node 24 ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([ea21934](https://github.com/newrelic/node-newrelic/commit/ea21934a7b638855610ff193e88d15f8b910d8a8))
+* Updated version of `actions/download-artifact` to v8 ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([54a58b9](https://github.com/newrelic/node-newrelic/commit/54a58b95bb8b5a15d7f7b340a9c8da2a3d3e88a9))
+* Updated versions of actions to ensure they are running on node 24 ([#3980](https://github.com/newrelic/node-newrelic/pull/3980)) ([6302002](https://github.com/newrelic/node-newrelic/commit/630200223d03e39249e359563727900a70ce15cf))
+
 ### v13.20.0 (2026-05-12)
 
 #### Features

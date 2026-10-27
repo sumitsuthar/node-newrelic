@@ -7,20 +7,21 @@
 
 const assert = require('node:assert')
 const test = require('node:test')
-const path = require('node:path')
 const amqpUtils = require('./amqp-utils')
 const API = require('../../../api')
 const helper = require('../../lib/agent_helper')
 const { removeMatchedModules } = require('../../lib/cache-buster')
-const promiseResolvers = require('../../lib/promise-resolvers')
-const getPackageVersion = require('../../../lib/util/get-package-version')
+const getPackageVersion = require('../../lib/get-package-version')
 const metrics = require('../../lib/metrics_helper')
-const { assertPackageMetrics, assertMetrics, assertSegments } = require('./../../lib/custom-assertions')
+const {
+  assertPackageMetrics,
+  assertMetrics,
+  assertSegmentDuration,
+  assertSegments
+} = require('./../../lib/custom-assertions')
 const PROMISE_WAIT = 100
 
-const version = getPackageVersion(
-  path.join(__dirname, 'node_modules', 'amqplib')
-)
+const version = getPackageVersion({ pkgName: 'amqplib', baseDir: __dirname })
 
 test('amqplib promise instrumentation', async function (t) {
   t.beforeEach(async function (ctx) {
@@ -73,7 +74,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('sendToQueue', async function (t) {
     const { agent, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
 
     helper.runInTransaction(agent, function transactionInScope(tx) {
       channel.sendToQueue('testQueue', Buffer.from('hello'), {
@@ -245,7 +246,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('consume in a transaction with distributed tracing', async function (t) {
     const { agent, api, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
     agent.config.account_id = 1234
     agent.config.primary_application_id = 4321
     agent.config.trusted_account_key = 1234
@@ -288,7 +289,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('consume out of transaction', async function (t) {
     const { api, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
 
     await channel.assertExchange(amqpUtils.DIRECT_EXCHANGE, 'direct')
     const { queue } = await channel.assertQueue('', { exclusive: true })
@@ -311,7 +312,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('rename message consume transaction', async function (t) {
     const { api, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
 
     await channel.assertExchange(amqpUtils.DIRECT_EXCHANGE, 'direct')
     const { queue } = await channel.assertQueue('', { exclusive: true })
@@ -335,7 +336,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('should create consume segment if consume is happening with an existing transaction', async function (t) {
     const { agent, api, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
     const exchange = amqpUtils.DIRECT_EXCHANGE
 
     let publishTx
@@ -369,7 +370,7 @@ test('amqplib promise instrumentation', async function (t) {
 
   await t.test('publish to pre-declared exchange', async function (t) {
     const { api, channel } = t.nr
-    const { promise, resolve } = promiseResolvers()
+    const { promise, resolve } = Promise.withResolvers()
     const fanoutExchange = 'amq.fanout'
     await channel.assertExchange(fanoutExchange, 'fanout')
     const { queue } = await channel.assertQueue('', { exclusive: true })
@@ -396,15 +397,31 @@ test('amqplib promise instrumentation', async function (t) {
   })
 
   await t.test('consume with async message handler', async function (t) {
-    const { api, channel } = t.nr
-    const { promise, resolve: promiseResolve } = promiseResolvers()
+    const { agent, channel } = t.nr
 
     await channel.assertExchange(amqpUtils.DIRECT_EXCHANGE, 'direct')
     const { queue } = await channel.assertQueue('', { exclusive: true })
     await channel.bindQueue(queue, amqpUtils.DIRECT_EXCHANGE, 'consume-tx-key')
-    let tx
+
+    // The consume transaction is ended asynchronously in a `.finally` block
+    // once the async handler settles. Drive the assertions from
+    // `transactionFinished` so they run only after that end completes, rather
+    // than racing it with `process.nextTick` (which could run before the
+    // transaction ended and would also throw outside the test, orphaning the
+    // channel for the next test).
+    const { promise, resolve: txEnded } = Promise.withResolvers()
+    agent.once('transactionFinished', function (tx) {
+      amqpUtils.verifyConsumeTransaction(tx, amqpUtils.DIRECT_EXCHANGE, queue, 'consume-tx-key')
+      // The base segment envelops the async handler's work. Assert its duration
+      // is consistent with the wall-clock time observed since it started rather
+      // than against a fixed PROMISE_WAIT floor, which is flaky on loaded CI
+      // runners where the measured duration can fall just under the threshold.
+      const actualTime = process.hrtime(tx.baseSegment.timer.hrstart)
+      assertSegmentDuration({ segment: tx.baseSegment, actualTime })
+      txEnded()
+    })
+
     await channel.consume(queue, async function (msg) {
-      ;({ _transaction: tx } = api.getTransaction())
       assert.ok(msg, 'should receive a message')
 
       const body = msg.content.toString('utf8')
@@ -412,28 +429,32 @@ test('amqplib promise instrumentation', async function (t) {
 
       await new Promise((resolve) => setTimeout(resolve, PROMISE_WAIT))
       channel.ack(msg)
-      promiseResolve()
     })
     channel.publish(amqpUtils.DIRECT_EXCHANGE, 'consume-tx-key', Buffer.from('hello'))
     await promise
-    // need to run in assertion in next tick because we end transaction in a `.finally` block
-    process.nextTick(() => {
-      amqpUtils.verifyConsumeTransaction(tx, amqpUtils.DIRECT_EXCHANGE, queue, 'consume-tx-key')
-      assert.ok(tx.trace.getDurationInMillis() >= PROMISE_WAIT, 'transaction should account for async work')
-      assert.ok(tx.baseSegment.getDurationInMillis() >= PROMISE_WAIT, 'base segment should account for async work')
-    })
   })
 
   await t.test('consume with async message handler that rejects', async function (t) {
-    const { api, channel } = t.nr
-    const { promise, reject } = promiseResolvers()
+    const { agent, channel } = t.nr
+    const { promise: rejected, reject } = Promise.withResolvers()
 
     await channel.assertExchange(amqpUtils.DIRECT_EXCHANGE, 'direct')
     const { queue } = await channel.assertQueue('', { exclusive: true })
     await channel.bindQueue(queue, amqpUtils.DIRECT_EXCHANGE, 'consume-tx-key')
-    let tx
+
+    // See the preceding test: the transaction ends asynchronously in a
+    // `.finally` block even when the handler rejects, so drive the end-state
+    // assertions from `transactionFinished` instead of `process.nextTick`.
+    const { promise: txFinished, resolve: txEnded } = Promise.withResolvers()
+    agent.once('transactionFinished', function (tx) {
+      amqpUtils.verifyConsumeTransaction(tx, amqpUtils.DIRECT_EXCHANGE, queue, 'consume-tx-key')
+      // See note above: assert against observed wall-clock, not a fixed floor.
+      const actualTime = process.hrtime(tx.baseSegment.timer.hrstart)
+      assertSegmentDuration({ segment: tx.baseSegment, actualTime })
+      txEnded()
+    })
+
     await channel.consume(queue, async function (msg) {
-      ;({ _transaction: tx } = api.getTransaction())
       assert.ok(msg, 'should receive a message')
 
       const body = msg.content.toString('utf8')
@@ -445,17 +466,9 @@ test('amqplib promise instrumentation', async function (t) {
       reject(error)
     })
     channel.publish(amqpUtils.DIRECT_EXCHANGE, 'consume-tx-key', Buffer.from('hello'))
-    try {
-      await promise
-      assert.fail('should not resolve successfully')
-    } catch (err) {
-      assert.equal(err.message, 'async handler failure', 'should reject with correct error')
-      // need to run in assertion in next tick because we end transaction in a `.finally` block
-      process.nextTick(() => {
-        amqpUtils.verifyConsumeTransaction(tx, amqpUtils.DIRECT_EXCHANGE, queue, 'consume-tx-key')
-        assert.ok(tx.trace.getDurationInMillis() >= PROMISE_WAIT, 'transaction should account for async work')
-      })
-    }
+
+    await assert.rejects(rejected, /async handler failure/, 'should reject with correct error')
+    await txFinished
   })
 
   await t.test('should connect with object', async function (t) {

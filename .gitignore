@@ -13,6 +13,7 @@ ca-serial*
 out
 .vscode
 .nyc_output
+.eslintcache
 test/**/package-lock.json
 coverage/
 test/versioned-external/TEMP_TESTS
@@ -25,3 +26,8 @@ bin/.env
 
 # Local developer resources:
 local/
+# .gitignore - Claude Code personal files
+# per https://computingforgeeks.com/claude-code-dot-claude-directory-guide/
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/agent-memory-local/

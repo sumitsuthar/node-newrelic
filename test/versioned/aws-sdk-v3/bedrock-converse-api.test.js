@@ -9,13 +9,15 @@ const assert = require('node:assert')
 const test = require('node:test')
 const semver = require('semver')
 
+const getPackageVersion = require('../../lib/get-package-version.js')
+const afterEach = require('./test-utils/after-each.js')
 const assertChatCompletionMessages = require('./test-utils/assert-chat-completion-messages.js')
 const assertChatCompletionSummary = require('./test-utils/assert-chat-completion-summary.js')
 const helper = require('../../lib/agent_helper')
 const { FAKE_CREDENTIALS, getAiResponseServer } = require('../../lib/aws-server-stubs')
 const { DESTINATIONS } = require('../../../lib/config/attribute-filter')
 const { assertPackageMetrics, assertSegments, match } = require('../../lib/custom-assertions')
-const promiseResolvers = require('../../lib/promise-resolvers')
+const { findSegment } = require('../../lib/metrics_helper')
 const responseConstants = require('../../lib/aws-server-stubs/ai-server/responses/constants')
 const createAiResponseServer = getAiResponseServer(__dirname)
 
@@ -26,41 +28,48 @@ const modelId = 'anthropic.claude-instant-v1'
 const { version: bedrockVersion } = require('@aws-sdk/client-bedrock-runtime/package.json')
 
 test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) => {
-  const agent = helper.instrumentMockedAgent({
-    ai_monitoring: {
-      enabled: true
-    }
-  })
-  const bedrock = require('@aws-sdk/client-bedrock-runtime')
+  t.beforeEach(async (ctx) => {
+    ctx.nr = {}
+    ctx.nr.agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: true
+      }
+    })
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    ctx.nr.bedrock = bedrock
 
-  const { server, baseUrl, host, port } = await createAiResponseServer()
-  const expectedExternalPath = (modelId, method = 'converse') => `External/${host}:${port}/model/${encodeURIComponent(modelId)}/${method}`
+    const { server, baseUrl, host, port } = await createAiResponseServer()
+    ctx.nr.server = server
+    ctx.nr.expectedExternalPath = (modelId, method = 'converse') => `External/${host}:${port}/model/${encodeURIComponent(modelId)}/${method}`
 
-  const client = new bedrock.BedrockRuntimeClient({
-    region: 'us-east-1',
-    credentials: FAKE_CREDENTIALS,
-    endpoint: baseUrl,
-    maxAttempts: 1
+    ctx.nr.client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
   })
 
-  test.after(() => {
-    server.destroy()
-    helper.unloadAgent(agent)
-  })
-
-  test.afterEach(() => {
-    agent.customEventAggregator.clear()
-    agent.llm.tokenCountCallback = null
-  })
+  t.afterEach(afterEach)
 
   await t.test('should properly create completion segment', async (t) => {
-    // the package we subscribe to changes in `4.13.0` of `@smithy/smithy-client` to `@smithy/core`
-    let { version } = require('@smithy/smithy-client/package.json')
+    const { agent, bedrock, client, expectedExternalPath } = t.nr
+    // the package we subscribe to changes in `4.13.0` from
+    // `@smithy/smithy-client` to `@smithy/core`
     let pkg = '@smithy/smithy-client'
-    if (semver.gte(version, '4.13.0')) {
-      ;({ version } = require('@smithy/core/package.json'))
+    let version = getPackageVersion({
+      pkgName: pkg,
+      baseDir: __dirname
+    })
+
+    if (version === undefined || semver.gte(version, '4.13.0')) {
       pkg = '@smithy/core'
+      version = getPackageVersion({
+        pkgName: pkg,
+        baseDir: __dirname
+      })
     }
+
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -88,6 +97,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('properly create the LlmChatCompletionMessage(s) and LlmChatCompletionSummary events', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -130,7 +140,8 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('supports custom attributes on LlmChatCompletionMessage(s) and LlmChatCompletionSummary events', async (t) => {
-    const { promise, resolve } = promiseResolvers()
+    const { agent, bedrock, client } = t.nr
+    const { promise, resolve } = Promise.withResolvers()
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -159,6 +170,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should record feedback message accordingly', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -197,6 +209,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should increment tracking metric for each chat completion event', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -217,6 +230,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should properly create errors on create completion', async (t) => {
+    const { agent, bedrock, client, expectedExternalPath } = t.nr
     const prompt = 'text converse ultimate question error'
     const input = {
       modelId,
@@ -287,6 +301,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should add llm attribute to transaction', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -306,6 +321,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should decorate messages with custom attrs', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question'
     const input = {
       modelId,
@@ -339,6 +355,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should instrument text stream', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'text converse ultimate question streamed'
     const input = {
       modelId,
@@ -379,7 +396,6 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
 
       assertChatCompletionSummary({ tx, modelId, tokenUsage: true, chatSummary, numMsgs: events.length - 1 })
       const timeToFirstToken = chatSummary?.[1]?.['time_to_first_token']
-      assert.ok(timeToFirstToken, 'time_to_first_token should exist')
       assert.equal(typeof timeToFirstToken, 'number', 'time_to_first_token should be a number')
       assert.ok(timeToFirstToken >= 0, 'time_to_first_token should be >= 0')
 
@@ -388,6 +404,7 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
   })
 
   await t.test('should not instrument stream when disabled', async (t) => {
+    const { agent, bedrock, client } = t.nr
     agent.config.ai_monitoring.streaming.enabled = false
     const prompt = 'text converse ultimate question streamed'
     const input = {
@@ -423,6 +440,142 @@ test('Converse API', { skip: semver.lt(bedrockVersion, '3.587.0') }, async (t) =
         'should increment streaming disabled metric'
       )
 
+      tx.end()
+    })
+  })
+
+  await t.test('should not create segment or llm events when ai_monitoring.enabled is false', async (t) => {
+    const { agent, bedrock, client, expectedExternalPath } = t.nr
+    agent.config.ai_monitoring.enabled = false
+    const prompt = 'text converse ultimate question'
+    const input = {
+      modelId,
+      messages: [
+        { role: 'user', content: [{ text: prompt }] }
+      ],
+    }
+    const command = new bedrock.ConverseCommand(input)
+
+    await helper.runInTransaction(agent, async (tx) => {
+      await client.send(command)
+      const events = agent.customEventAggregator.events.toArray()
+      assert.equal(events.length, 0, 'should not create llm events when ai_monitoring is disabled')
+      assert.ok(
+        !findSegment(tx.trace, tx.trace.root, 'Llm/completion/Bedrock/ConverseCommand'),
+        'should not create Llm completion segment when ai_monitoring is disabled'
+      )
+      // the external call should still happen, just without the Llm wrapper segment
+      assert.ok(findSegment(tx.trace, tx.trace.root, expectedExternalPath(modelId)))
+      tx.end()
+    })
+  })
+
+  await t.test('should create segment and llm events when ai_monitoring is disabled at instrumentation but enabled before the call', async (t) => {
+    // tear down the enabled agent/module set up in `beforeEach`
+    t.nr.server.destroy()
+    helper.unloadAgent(t.nr.agent)
+    Object.keys(require.cache).forEach((key) => {
+      if (key.includes('@aws-sdk') || key.includes('@smithy')) {
+        delete require.cache[key]
+      }
+    })
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      }
+    })
+    t.nr.agent = agent
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    const { server, baseUrl } = await createAiResponseServer()
+    t.nr.server = server
+    const client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
+
+    const prompt = 'text converse ultimate question'
+    const input = {
+      modelId,
+      messages: [
+        { role: 'user', content: [{ text: prompt }] }
+      ],
+    }
+    const command = new bedrock.ConverseCommand(input)
+
+    // enable ai_monitoring before making the first `.send()` call
+    agent.config.ai_monitoring.enabled = true
+    await helper.runInTransaction(agent, async (tx) => {
+      await client.send(command)
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assert.ok(
+        findSegment(tx.trace, tx.trace.root, 'Llm/completion/Bedrock/ConverseCommand'),
+        'should create Llm completion segment when ai_monitoring is enabled before the call'
+      )
+      tx.end()
+    })
+  })
+
+  await t.test('should create segment and llm events in stream when ai_monitoring is disabled at instrumentation but enabled before the call', async (t) => {
+    // tear down the enabled agent/module set up in `beforeEach`
+    t.nr.server.destroy()
+    helper.unloadAgent(t.nr.agent)
+    Object.keys(require.cache).forEach((key) => {
+      if (key.includes('@aws-sdk') || key.includes('@smithy')) {
+        delete require.cache[key]
+      }
+    })
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      }
+    })
+    t.nr.agent = agent
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    const { server, baseUrl } = await createAiResponseServer()
+    t.nr.server = server
+    const client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
+
+    const prompt = 'text converse ultimate question streamed'
+    const input = {
+      modelId,
+      messages: [
+        { role: 'user', content: [{ text: prompt }] }
+      ],
+      inferenceConfig: {
+        maxTokens: 100,
+        temperature: 0.5
+      },
+    }
+    const command = new bedrock.ConverseStreamCommand(input)
+
+    // enable ai_monitoring before making the first `.send()` call
+    agent.config.ai_monitoring.enabled = true
+    await helper.runInTransaction(agent, async (tx) => {
+      const response = await client.send(command)
+      assert.ok(response)
+      for await (const event of response.stream) {
+        // no-op iteration over the stream in order to exercise the instrumentation
+        consumeStreamChunk(event)
+      }
+
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assert.ok(
+        findSegment(tx.trace, tx.trace.root, 'Llm/completion/Bedrock/ConverseStreamCommand'),
+        'should create Llm completion segment when ai_monitoring is enabled before the call'
+      )
       tx.end()
     })
   })

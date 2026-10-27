@@ -11,10 +11,16 @@ const test = require('node:test')
 const assert = require('node:assert')
 
 const { ROOT_CONTEXT, SpanKind } = require('@opentelemetry/api')
-const { BasicTracerProvider } = require('@opentelemetry/sdk-trace-base')
 const { RulesEngine } = require('#agentlib/otel/traces/rules.js')
-
-const tracer = new BasicTracerProvider().getTracer('default')
+const { SamplingDecision } = require('#agentlib/otel/constants.js')
+const NrTracerProvider = require('#agentlib/otel/traces/nr-tracer-provider.js')
+const provider = new NrTracerProvider({
+  // Always sample, and never invoke a processor automatically -- these
+  // tests exercise the `processor` under test directly via `onStart`/`onEnd`.
+  sampler: { shouldSample: () => { return { decision: SamplingDecision.RECORD_AND_SAMPLED } } },
+  processor: { onStart() {}, onEnd() {} }
+})
+const tracer = provider.getTracer('default')
 
 test('engine returns correct matching rule', () => {
   const engine = new RulesEngine()
@@ -92,4 +98,67 @@ test('fallback internal rule is met', () => {
   const rule = engine.test(span)
   assert.notEqual(rule, undefined)
   assert.equal(rule.name, 'Fallback')
+})
+
+test('scope_name rule is met', () => {
+  const engine = new RulesEngine()
+  const span = tracer.startSpan('test-span', { kind: SpanKind.CLIENT }, ROOT_CONTEXT)
+  span.setAttribute('db.system.name', 'postgresql')
+  span.instrumentationScope = { name: 'prisma' }
+  span.end()
+
+  const rule = engine.test(span)
+  assert.notEqual(rule, undefined)
+  assert.equal(rule.name, 'OtelDbClientPrisma1_40')
+})
+
+test('scope_version matching rule is met', () => {
+  const rule = {
+    name: 'test-rule',
+    type: 'db',
+    matcher: {
+      required_span_kinds: ['client'],
+      required_attribute_keys: ['db.system'],
+      scope_version: '^1.0.0'
+    },
+    attributes: [{
+      key: 'db.system',
+      target: 'segment',
+      name: 'product'
+    }]
+  }
+  const engine = new RulesEngine({ rules: [rule] })
+  const span = tracer.startSpan('test-span', { kind: SpanKind.CLIENT }, ROOT_CONTEXT)
+  span.setAttribute('db.system', 'test-db')
+  span.instrumentationScope = { version: '1.2.3' }
+  span.end()
+
+  const foundRule = engine.test(span)
+  assert.notEqual(foundRule, undefined)
+  assert.equal(foundRule.name, rule.name)
+})
+
+test('scope_version does not satisfy', () => {
+  const rule = {
+    name: 'test-rule',
+    type: 'db',
+    matcher: {
+      required_span_kinds: ['client'],
+      required_attribute_keys: ['db.system'],
+      scope_version: '^1.0.0'
+    },
+    attributes: [{
+      key: 'db.system',
+      target: 'segment',
+      name: 'product'
+    }]
+  }
+  const engine = new RulesEngine({ rules: [rule] })
+  const span = tracer.startSpan('test-span', { kind: SpanKind.CLIENT }, ROOT_CONTEXT)
+  span.setAttribute('db.system', 'test-db')
+  span.instrumentationScope = { version: '2.0.0' }
+  span.end()
+
+  const foundRule = engine.test(span)
+  assert.equal(foundRule, undefined)
 })

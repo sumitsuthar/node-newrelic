@@ -39,12 +39,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
+          check-latest: true
       - run: npm install
       - run: |
           git config user.name ${GITHUB_ACTOR}
           git config user.email gh-actions-${GITHUB_ACTOR}@github.com
-      - id: get_tag
-        run: echo "latest_tag=$(cat package.json | jq .version)" >> $GITHUB_OUTPUT
       - run: npm run publish-docs
 
   docs:
@@ -60,14 +59,15 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
+          check-latest: true
       - run: npm install
       - run: |
           git config user.name ${GITHUB_ACTOR}
           git config user.email gh-actions-${GITHUB_ACTOR}@github.com
       - id: get_tag
-        run: echo "latest_tag=$(cat package.json | jq .version)" >> $GITHUB_OUTPUT
+        run: jq -r '"version=\(.version)"' ./package.json >> $GITHUB_OUTPUT
       - name: Create Docs Website PR
-        run: node ./bin/create-docs-pr.js --tag v${{ steps.get_tag.outputs.latest_tag }}
+        run: node ./bin/create-docs-pr.js --tag v${{ steps.get_tag.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.NODE_AGENT_GH_TOKEN }}
           GITHUB_USER: ${{ vars.NODE_AGENT_CI_USER_NAME }}

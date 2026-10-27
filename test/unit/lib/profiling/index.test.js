@@ -78,6 +78,72 @@ describe('register', () => {
     profilingManager.register()
     assert.strictEqual(profilingManager.profilers.size, 2, 'should be a no-op')
   })
+
+  test('registers the cpu profiler with the cached source mapper', (t) => {
+    const { profilingManager } = t.nr
+    const mapper = { infoMap: new Map() }
+    profilingManager.sourceMapper = mapper
+    profilingManager.config.include = ['cpu']
+
+    profilingManager.register()
+
+    const cpuProfiler = profilingManager.profilers.get('CpuProfiler')
+    assert.ok(cpuProfiler, 'should register the cpu profiler')
+    assert.strictEqual(cpuProfiler.sourceMapper, mapper, 'should forward the cached mapper')
+  })
+
+  test('registers the heap profiler with the cached source mapper', (t) => {
+    const { profilingManager } = t.nr
+    const mapper = { infoMap: new Map() }
+    profilingManager.sourceMapper = mapper
+    profilingManager.config.include = ['heap']
+
+    profilingManager.register()
+
+    const heapProfiler = profilingManager.profilers.get('HeapProfiler')
+    assert.ok(heapProfiler, 'should register the heap profiler')
+    assert.strictEqual(heapProfiler.sourceMapper, mapper, 'should forward the cached mapper')
+  })
+})
+
+describe('buildSourceMapper', () => {
+  test('builds and caches the mapper from the app root when enabled', async (t) => {
+    const { profilingManager, sandbox } = t.nr
+    const { SourceMapper } = require('@datadog/pprof')
+    const mapper = { infoMap: new Map() }
+    const create = sandbox.stub(SourceMapper, 'create').resolves(mapper)
+    profilingManager.config.source_mapping = { enabled: true }
+
+    await profilingManager.buildSourceMapper()
+
+    assert.strictEqual(profilingManager.sourceMapper, mapper, 'should cache the built mapper')
+    assert.equal(create.callCount, 1, 'should build the mapper once')
+    assert.deepStrictEqual(create.firstCall.args[0], [process.cwd()], 'should scan the application root')
+  })
+
+  test('is a no-op when source mapping is disabled', async (t) => {
+    const { profilingManager, sandbox } = t.nr
+    const { SourceMapper } = require('@datadog/pprof')
+    const create = sandbox.stub(SourceMapper, 'create')
+    profilingManager.config.source_mapping = { enabled: false }
+
+    await profilingManager.buildSourceMapper()
+
+    assert.strictEqual(profilingManager.sourceMapper, null, 'should leave the mapper null')
+    assert.equal(create.callCount, 0, 'should not scan for source maps')
+  })
+
+  test('leaves the mapper null and logs when the build fails', async (t) => {
+    const { profilingManager, logger, sandbox } = t.nr
+    const { SourceMapper } = require('@datadog/pprof')
+    sandbox.stub(SourceMapper, 'create').rejects(new Error('scan failed'))
+    profilingManager.config.source_mapping = { enabled: true }
+
+    await profilingManager.buildSourceMapper()
+
+    assert.strictEqual(profilingManager.sourceMapper, null, 'should fall back to compiled file/line')
+    assert.equal(logger.error.callCount, 1, 'should log the build failure')
+  })
 })
 
 describe('start', () => {

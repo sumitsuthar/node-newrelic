@@ -6,6 +6,8 @@
 'use strict'
 
 const HealthReporter = require('./lib/health-reporter.js')
+const findStartupBlockers = require('./lib/config/find-startup-blockers.js')
+const { isOtelBridgeAvailable } = require('./lib/otel/bridge-available.js')
 
 // Record opening times before loading any other files.
 const preAgentTime = process.uptime()
@@ -15,9 +17,9 @@ const { isMainThread } = require('worker_threads')
 // Load unwrapped core now to ensure it gets the freshest properties.
 require('./lib/util/unwrapped-core')
 
-const featureFlags = require('./lib/feature_flags').prerelease
+const featureFlags = require('#agentlib/feature-flags.js').prerelease
 const psemver = require('./lib/util/process-version')
-let logger = require('./lib/logger') // Gets re-loaded after initialization.
+const logger = require('./lib/logger')
 const NAMES = require('./lib/metrics/names')
 
 const pkgJSON = require('./package.json')
@@ -26,10 +28,6 @@ logger.info(
   pkgJSON.version,
   process.version
 )
-const path = require('node:path')
-const Module = require('node:module')
-const otelPackages = Object.keys(pkgJSON.dependencies).filter((d) => d.startsWith('@opentelemetry'))
-const otelRequire = Module.createRequire(path.join(__dirname, __filename))
 
 if (require.cache.__NR_cache) {
   logger.warn(
@@ -52,7 +50,6 @@ function initApi({ agent }) {
   return api
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 function initialize() {
   logger.debug('Loading agent from %s', __dirname)
   let agent = null
@@ -69,8 +66,8 @@ function initialize() {
       throw new Error(message)
     }
 
-    // TODO: Update this check when Node v26 support is added
-    if (psemver.satisfies('>=25.0.0')) {
+    // TODO: Update this check when Node v27 support is added
+    if (psemver.satisfies('>=27.0.0')) {
       logger.warn(
         'New Relic for Node.js %s has not been tested on Node.js %s. Please ' +
           'update the agent or downgrade your version of Node.js',
@@ -90,10 +87,6 @@ function initialize() {
 
     const config = require('./lib/config').getOrCreateInstance()
 
-    // Get the initialized logger as we likely have a bootstrap logger which
-    // just pipes to stdout.
-    logger = require('./lib/logger')
-
     if (!config) {
       logger.info('No configuration detected. Not starting.')
     } else if (!config.agent_enabled) {
@@ -102,7 +95,11 @@ function initialize() {
       logger.warn(
         'New Relic for Node.js in worker_threads is not officially supported. Not starting! To bypass this, set `config.worker_threads.enabled` to true in configuration.'
       )
-    } else if (config.opentelemetry.enabled === true && otelBridgeAvailable() === false) {
+    } else if (
+      findStartupBlockers(config, 'opentelemetry', {
+        otelBridgeAvailable: isOtelBridgeAvailable(__filename)
+      }).length > 0
+    ) {
       logger.warn(
         'OpenTelemetry bridge enabled, but packages are missing. Not starting!'
       )
@@ -154,13 +151,13 @@ function createAgent(config) {
    */
   const Agent = require('./lib/agent')
   const agent = new Agent(config)
-  const appNames = agent.config.applications()
 
   if (config.logging.diagnostics) {
     logger.warn('Diagnostics logging is enabled, this may cause significant overhead.')
   }
 
-  if (appNames.length < 1) {
+  const appNameBlockers = findStartupBlockers(config, 'app_name')
+  if (appNameBlockers.length > 0) {
     const message =
       'New Relic requires that you name this application!\n' +
       'Set app_name in your newrelic.js or newrelic.cjs file or set environment variable\n' +
@@ -286,17 +283,4 @@ function recordDisabledPackages(agent) {
       agent.recordSupportability(`Nodejs/Instrumentation/${pkg}/disabled`)
     }
   }
-}
-
-function otelBridgeAvailable() {
-  for (const p of otelPackages) {
-    try {
-      otelRequire.resolve(p)
-    } catch (error) {
-      if (error.code.includes('MODULE_NOT_FOUND')) {
-        return false
-      }
-    }
-  }
-  return true
 }

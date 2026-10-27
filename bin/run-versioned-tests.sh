@@ -38,11 +38,15 @@ fi
 
 set -f
 directories=()
-if [[ "$1" != '' ]];
+if [[ "$#" -gt 0 ]];
 then
-  directories=(
-    "test/versioned/${1}"
-  )
+  # Each positional argument is a suite subdir name to run, e.g.
+  # `npm run versioned:major amqplib pino winston`. CI uses this to run a shard
+  # (subset) of the versioned suites.
+  for d in "$@";
+  do
+    directories+=( "test/versioned/${d}" )
+  done
 else
   directories=(
     "test/versioned/"

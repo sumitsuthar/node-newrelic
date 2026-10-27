@@ -5,25 +5,27 @@
 
 'use strict'
 
-const Agent = require('../../lib/agent')
-const API = require('../../api')
-const zlib = require('zlib')
-const copy = require('../../lib/util/copy')
-const hashes = require('#agentlib/util/hashes.js')
-const { defaultAttributeConfig } = require('./fixtures')
-const { EventEmitter } = require('events')
-const Transaction = require('../../lib/transaction')
-const symbols = require('../../lib/symbols')
-const InstrumentationTracker = require('../../lib/instrumentation-tracker')
-const { removeModules } = require('./cache-buster')
-const http = require('http')
-const https = require('https')
-const semver = require('semver')
-const crypto = require('crypto')
-const util = require('util')
-const cp = require('child_process')
+const cp = require('node:child_process')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
+const http = require('node:http')
+const https = require('node:https')
 const path = require('node:path')
+const util = require('node:util')
+const zlib = require('node:zlib')
+const { EventEmitter } = require('events')
+const semver = require('semver')
+
+const copy = require('#agentlib/util/copy.js')
+const hashes = require('#agentlib/util/hashes.js')
+const methodWrapper = require('#agentlib/subscribers/wrap-method.js')
+const symbols = require('#agentlib/symbols.js')
+const API = require('../../api')
+const Agent = require('#agentlib/agent.js')
+const InstrumentationTracker = require('#agentlib/instrumentation-tracker.js')
+const Transaction = require('#agentlib/transaction/index.js')
+const { defaultAttributeConfig } = require('./fixtures')
+const { removeModules } = require('./cache-buster')
 
 let _agent = null
 let _agentApi = null
@@ -83,6 +85,8 @@ helper.loadMockedAgent = function loadMockedAgent(conf, setState = true) {
   if (_agent) {
     throw _agent.__created
   }
+
+  methodWrapper.toggleUnwrappingTracking()
 
   // agent needs a 'real' configuration
   const configurator = require('../../lib/config')
@@ -193,8 +197,28 @@ helper.instrumentMockedAgent = (conf, setState = true, shimmer = require('../../
   shimmer.bootstrapInstrumentation(agent)
   shimmer.registerHooks(agent)
   helper.maybeLoadSecurityAgent(agent)
+  installStableHttpRequest()
 
   return agent
+}
+
+// @smithy/node-http-handler ≥ 4.7.3 captures http.request via
+// `await import('node:http')`, which snapshots the ESM namespace at first
+// import. Subsequent shimmer.unwrap/re-wrap cycles (per-test agent setup)
+// are invisible to that snapshot, leaving smithy bound to a defunct agent.
+// Install a stable forwarding shim once; each instrumentMockedAgent call
+// just updates what it delegates to.
+let _activeHttpRequest = null
+let _stableHttpRequest = null
+function installStableHttpRequest() {
+  _activeHttpRequest = http.request
+  if (!_stableHttpRequest) {
+    // Name mirrors shimmer's wrapper so http.request.name assertions still hold.
+    _stableHttpRequest = function wrappedRequest(...args) {
+      return _activeHttpRequest.apply(this, args)
+    }
+  }
+  http.request = _stableHttpRequest
 }
 
 /**
@@ -252,6 +276,8 @@ helper.unloadAgent = (agent, shimmer = require('../../lib/shimmer')) => {
   agent.harvester.stop()
 
   if (agent === _agent) {
+    methodWrapper.unwrapAll()
+    methodWrapper.toggleUnwrappingTracking()
     _agent = null
     _agentApi = null
   }
@@ -626,7 +652,6 @@ helper.getShim = function getShim(pkg) {
  */
 helper.execSync = function execSync({ cwd, script }) {
   try {
-    // eslint-disable-next-line sonarjs/os-command
     cp.execSync(`node ./${script}`, {
       stdio: 'pipe',
       encoding: 'utf8',

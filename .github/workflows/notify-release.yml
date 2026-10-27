@@ -7,7 +7,7 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    # Runs on Mondays at 8AM PST (15 UTC)
+    # Runs on Mondays at 8 AM PST (15 UTC)
     - cron: '0 15 * * 1'
 
 jobs:
@@ -19,6 +19,7 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: lts/*
+        check-latest: true
     - name: Install Dependencies
       run: npm install
     - name: Check for PRs not yet released

@@ -9,6 +9,7 @@ const assert = require('node:assert')
 const test = require('node:test')
 const { tspl } = require('@matteo.collina/tspl')
 
+const afterEach = require('./test-utils/after-each.js')
 const assertChatCompletionMessage = require('./test-utils/assert-chat-completion-message.js')
 const assertChatCompletionMessages = require('./test-utils/assert-chat-completion-messages.js')
 const assertChatCompletionSummary = require('./test-utils/assert-chat-completion-summary.js')
@@ -16,7 +17,6 @@ const helper = require('../../lib/agent_helper')
 const { FAKE_CREDENTIALS, getAiResponseServer } = require('../../lib/aws-server-stubs')
 const { DESTINATIONS } = require('../../../lib/config/attribute-filter')
 const { assertSegments, match } = require('../../lib/custom-assertions')
-const promiseResolvers = require('../../lib/promise-resolvers')
 const createAiResponseServer = getAiResponseServer(__dirname)
 
 function consumeStreamChunk() {
@@ -83,31 +83,30 @@ const requests = {
 }
 
 test('Chat completions', async (t) => {
-  const agent = helper.instrumentMockedAgent({
-    ai_monitoring: {
-      enabled: true
-    }
-  })
-  const bedrock = require('@aws-sdk/client-bedrock-runtime')
+  t.beforeEach(async (ctx) => {
+    ctx.nr = {}
+    ctx.nr.agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: true
+      }
+    })
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    ctx.nr.bedrock = bedrock
 
-  const { server, baseUrl, responses, host, port } = await createAiResponseServer()
-  const expectedExternalPath = (modelId, method = 'invoke') => `External/${host}:${port}/model/${encodeURIComponent(modelId)}/${method}`
+    const { server, baseUrl, responses, host, port } = await createAiResponseServer()
+    ctx.nr.server = server
+    ctx.nr.responses = responses
+    ctx.nr.expectedExternalPath = (modelId, method = 'invoke') => `External/${host}:${port}/model/${encodeURIComponent(modelId)}/${method}`
 
-  const client = new bedrock.BedrockRuntimeClient({
-    region: 'us-east-1',
-    credentials: FAKE_CREDENTIALS,
-    endpoint: baseUrl,
-    maxAttempts: 1
-  })
-  test.after(() => {
-    server.destroy()
-    helper.unloadAgent(agent)
+    ctx.nr.client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
   })
 
-  test.afterEach(() => {
-    agent.customEventAggregator.clear()
-    agent.llm.tokenCountCallback = null
-  })
+  t.afterEach(afterEach)
 
   const tests = [
     { modelId: 'amazon.titan-text-express-v1', resKey: 'amazon' },
@@ -122,6 +121,7 @@ test('Chat completions', async (t) => {
   for (const data of tests) {
     const { modelId, resKey } = data
     await t.test(`${modelId}: should properly create completion segment`, async (t) => {
+      const { agent, bedrock, client, responses, expectedExternalPath } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
 
@@ -144,6 +144,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}:  properly create the LlmChatCompletionMessage(s) and LlmChatCompletionSummary events`, async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -176,7 +177,8 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}:  supports custom attributes on LlmChatCompletionMessage(s) and LlmChatCompletionSummary events`, async (t) => {
-      const { promise, resolve } = promiseResolvers()
+      const { agent, bedrock, client } = t.nr
+      const { promise, resolve } = Promise.withResolvers()
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -200,7 +202,8 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}:  supports assigning token counts in callback`, async (t) => {
-      const { promise, resolve } = promiseResolvers()
+      const { agent, bedrock, client } = t.nr
+      const { promise, resolve } = Promise.withResolvers()
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -242,6 +245,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}: text answer (streamed)`, async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question streamed`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelWithResponseStreamCommand(input)
@@ -273,7 +277,6 @@ test('Chat completions', async (t) => {
         assertChatCompletionSummary({ tx, modelId, chatSummary, numMsgs: events.length - 1 })
 
         const timeToFirstToken = chatSummary?.[1]?.['time_to_first_token']
-        assert.ok(timeToFirstToken, 'time_to_first_token should exist')
         assert.equal(typeof timeToFirstToken, 'number', 'time_to_first_token should be a number')
         assert.ok(timeToFirstToken >= 0, 'time_to_first_token should be >= 0')
 
@@ -282,6 +285,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test('should record feedback message accordingly', async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -315,6 +319,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}: should increment tracking metric for each chat completion event`, async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -330,6 +335,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}: should properly create errors on create completion`, async (t) => {
+      const { agent, bedrock, client, expectedExternalPath } = t.nr
       const prompt = `text ${resKey} ultimate question error`
       const input = requests[resKey](prompt, modelId)
 
@@ -390,6 +396,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`{${modelId}:}: should add llm attribute to transaction`, async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -404,6 +411,7 @@ test('Chat completions', async (t) => {
     })
 
     await t.test(`${modelId}: should decorate messages with custom attrs`, async (t) => {
+      const { agent, bedrock, client } = t.nr
       const prompt = `text ${resKey} ultimate question`
       const input = requests[resKey](prompt, modelId)
       const command = new bedrock.InvokeModelCommand(input)
@@ -433,6 +441,7 @@ test('Chat completions', async (t) => {
   }
 
   await t.test('cohere embedding streaming works', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const prompt = 'embed text cohere stream'
     const input = {
       body: JSON.stringify({
@@ -464,6 +473,7 @@ test('Chat completions', async (t) => {
   })
 
   await t.test('anthropic-claude-3: should properly create events for chunked messages', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
     const prompt = 'text claude3 ultimate question chunked'
     const promptFollowUp = 'And please include an image in the response'
@@ -537,6 +547,7 @@ test('Chat completions', async (t) => {
   })
 
   await t.test('region specific anthropic-claude-3: should properly create events for chunked messages', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const modelId = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'
     const prompt = 'text claude3 ultimate question chunked'
     const promptFollowUp = 'And please include an image in the response'
@@ -610,6 +621,7 @@ test('Chat completions', async (t) => {
   })
 
   await t.test('models that do not support streaming should be handled', async (t) => {
+    const { agent, bedrock, client, expectedExternalPath } = t.nr
     const modelId = 'amazon.titan-embed-text-v1'
     const prompt = 'embed text amazon error streamed'
     const input = requests.amazon(prompt, modelId)
@@ -665,6 +677,7 @@ test('Chat completions', async (t) => {
   })
 
   await t.test('models should properly create errors on stream interruption', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const modelId = 'amazon.titan-text-express-v1'
     const prompt = 'text amazon bad stream'
     const input = requests.amazon(prompt, modelId)
@@ -707,6 +720,7 @@ test('Chat completions', async (t) => {
   })
 
   await t.test('should not instrument stream when disabled', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const modelId = 'amazon.titan-text-express-v1'
     agent.config.ai_monitoring.streaming.enabled = false
     const prompt = 'text amazon ultimate question streamed'
@@ -767,7 +781,109 @@ test('Chat completions', async (t) => {
     })
   })
 
+  await t.test('should create segment and llm events when ai_monitoring is disabled at instrumentation but enabled before the call', async (t) => {
+    // tear down the enabled agent/module set up in `beforeEach`
+    t.nr.server.destroy()
+    helper.unloadAgent(t.nr.agent)
+    Object.keys(require.cache).forEach((key) => {
+      if (key.includes('@aws-sdk') || key.includes('@smithy')) {
+        delete require.cache[key]
+      }
+    })
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      }
+    })
+    t.nr.agent = agent
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    const { server, baseUrl } = await createAiResponseServer()
+    t.nr.server = server
+    const client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
+
+    const modelId = 'amazon.titan-text-express-v1'
+    const prompt = 'text amazon ultimate question'
+    const input = requests.amazon(prompt, modelId)
+    const command = new bedrock.InvokeModelCommand(input)
+
+    // enable ai_monitoring before making the first `.send()` call
+    agent.config.ai_monitoring.enabled = true
+    await helper.runInTransaction(agent, async (tx) => {
+      await client.send(command)
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assertSegments(
+        tx.trace,
+        tx.trace.root,
+        ['Llm/completion/Bedrock/InvokeModelCommand'],
+        { exact: false }
+      )
+      tx.end()
+    })
+  })
+
+  await t.test('should create segment and llm events in stream when ai_monitoring is disabled at instrumentation but enabled before the call', async (t) => {
+    // tear down the enabled agent/module set up in `beforeEach`
+    t.nr.server.destroy()
+    helper.unloadAgent(t.nr.agent)
+    Object.keys(require.cache).forEach((key) => {
+      if (key.includes('@aws-sdk') || key.includes('@smithy')) {
+        delete require.cache[key]
+      }
+    })
+
+    // set up the agent instance with ai_monitoring disabled
+    const agent = helper.instrumentMockedAgent({
+      ai_monitoring: {
+        enabled: false
+      }
+    })
+    t.nr.agent = agent
+    const bedrock = require('@aws-sdk/client-bedrock-runtime')
+    const { server, baseUrl } = await createAiResponseServer()
+    t.nr.server = server
+    const client = new bedrock.BedrockRuntimeClient({
+      region: 'us-east-1',
+      credentials: FAKE_CREDENTIALS,
+      endpoint: baseUrl,
+      maxAttempts: 1
+    })
+
+    const modelId = 'amazon.titan-text-express-v1'
+    const prompt = 'text amazon ultimate question streamed'
+    const input = requests.amazon(prompt, modelId)
+    const command = new bedrock.InvokeModelWithResponseStreamCommand(input)
+
+    // enable ai_monitoring before making the first `.send()` call
+    agent.config.ai_monitoring.enabled = true
+    await helper.runInTransaction(agent, async (tx) => {
+      const response = await client.send(command)
+      for await (const event of response.body) {
+        // no-op iteration over the stream in order to exercise the instrumentation
+        consumeStreamChunk(event)
+      }
+
+      const events = agent.customEventAggregator.events.toArray()
+      assert.ok(events.length > 0, 'should create llm events when ai_monitoring is enabled before the call')
+      assertSegments(
+        tx.trace,
+        tx.trace.root,
+        ['Llm/completion/Bedrock/InvokeModelWithResponseStreamCommand'],
+        { exact: false }
+      )
+      tx.end()
+    })
+  })
+
   await t.test('should utilize tokenCountCallback when set', async (t) => {
+    const { agent, bedrock, client } = t.nr
     const plan = tspl(t, { plan: 13 })
 
     const prompt = 'text amazon user token count callback response'

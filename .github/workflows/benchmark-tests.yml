@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [22.x, 24.x, 26.x]
 
     steps:
     - uses: actions/checkout@v6
@@ -28,6 +28,11 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
+        check-latest: true
+    # This step can be removed when we drop support for Node 22
+    - name: Upgrade npm
+      if: matrix.node-version == '22.x'
+      run: npm install -g npm@11
     - name: Install Dependencies
       run: npm install
     - name: Run Benchmark Tests

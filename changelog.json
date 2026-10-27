@@ -2,6 +2,300 @@
   "repository": "newrelic/node-newrelic",
   "entries": [
     {
+      "version": "14.9.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Bounded module version resolution at filesystem root",
+          "Loaded the code-level metrics function inspector once instead of on every call",
+          "Fixed `http2` client handling of missing headers, default ports, IPv6 hosts, and unparseable URLs"
+        ],
+        "features": [
+          "Flagged a missing OpenTelemetry bridge as a validate-config startup blocker",
+          "Added `--dump` to validate-config to emit the effective configuration",
+          "Reduced instances of the schema file to be just one instance in `schema.json`",
+          "Shared startup-blocker checks between the agent and validate-config CLI",
+          "Added a validate-config CLI command"
+        ]
+      }
+    },
+    {
+      "version": "14.8.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Truncated every string within an array based span attribute",
+          "Prevented nested server/consumer spans from ending the outer transactions early"
+        ]
+      }
+    },
+    {
+      "version": "14.7.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated the channel name for resolver fields in ESM to `nr_resolve`",
+          "Wrapped openai stream `[Symbol.asyncIterator]` so synthesized message survives v7 chunk normalization"
+        ],
+        "features": [
+          "Added a new api `setApolloResolverFilterCallback` to allow customers to filter out resolver segments before they are created"
+        ]
+      }
+    },
+    {
+      "version": "14.6.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Ended the transaction and recorded the error when an Azure Functions handler throws"
+        ],
+        "features": [
+          "Added a pre-compiled config schema validator"
+        ]
+      }
+    },
+    {
+      "version": "14.5.1",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `segment.getExclusiveDuration` to only attempt to calculate and cache the durations of all segments in a trace once"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.5.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `http2` instrumentation to properly inject `traceparent` header with external segment id",
+          "Updated `undici` instrumentation to not attempt to create an external segment when transaction is not active"
+        ],
+        "features": [
+          "Added `browser_monitoring.version` configuration option"
+        ]
+      }
+    },
+    {
+      "version": "14.4.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Fixed duplicated router mount path in transaction names for async middleware",
+          "Fixed otlp payload format for metrics in AWS Lambda"
+        ],
+        "features": [
+          "Added support for `MessageBroker/Kafka/Cluster/{cluster_id}/{Produce|Consume}/{topic_name}` metrics",
+          "Updated GCP hostname to support more Cloud Run instance types"
+        ]
+      }
+    },
+    {
+      "version": "14.3.10",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Prevented duplicate external segments when undici negotiates HTTP/2"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.9",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Fixed @google/adk instrumentation for v2.0.0"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.8",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `openai` instrumentation to support `>=7.5.0`"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.7",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Fixed OTEL metrics wrapping meters too many times",
+          "Updated `getBrowserTimingHeader` to handle when a transaction may not be finalized and still return the browser agent string without transaction intrinsics",
+          "Improved Apollo server resolver instrumentation performance"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.6",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `addAttribute` to only increase the attributeCount for new attributes"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.5",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Set `ignoreApdex` warning log to `trace`-level"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.4",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `openai` instrumentation to cache the results of `responses.parse` chain on openai custom promises"
+        ],
+        "features": [
+          "Collect OTEL metrics in AWS Lambda"
+        ]
+      }
+    },
+    {
+      "version": "14.3.3",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Avoid unconditional @opentelemetry/core require on agent startup"
+        ],
+        "features": [
+          "Collect on-CPU time alongside wall time in `CpuProfiler`",
+          "Add internal OTEL API to agent"
+        ]
+      }
+    },
+    {
+      "version": "14.3.2",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Resolved mongodb host details at operation time to support `mongodb+srv://` clients"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.1",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Handled `$0` as a replacement in a metric normalization rule to return the matched string in its entirety"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.3.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Fixed OTEL crash when adding exceptions to spans",
+          "Fixed `bunyan` log forwarding multiple duplicate lines"
+        ],
+        "features": [
+          "Added source mapping support to heap profiler",
+          "Added source mapping support to CPU (wall time) profiler",
+          "Added `otlp_resource_attributes` to all outgoing OpenTelemetry metrics calls",
+          "Added support for `ai_monitoring.enabled`,`ai_monitoring.streaming.enabled`, and `ai_monitoring.record_content.enabled` to be assigned via server-side config"
+        ]
+      }
+    },
+    {
+      "version": "14.2.1",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated `winston` instrumenting to assign `handleExceptions` to the first NrTransport to avoid registering duplicate `uncaughtException` handlers"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.2.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Added Node.js 26 support",
+          "Added `span_id` and `trace_id` labels to `CpuProfiler` sample data",
+          "Added new GCP Cloud Run hostname logic to include `K_REVISION`",
+          "Added `profiling.source_mapping.enabled` config option",
+          "Removed `spanId` in outgoing `tracestate` header"
+        ]
+      }
+    },
+    {
+      "version": "14.1.2",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Fixed Azure functions crashing when they include response headers"
+        ],
+        "features": []
+      }
+    },
+    {
+      "version": "14.1.1",
+      "changes": {
+        "security": [
+          "Updated min version of `@opentelemetry` `0.x` packages to `^0.219.0`"
+        ],
+        "bugfixes": [],
+        "features": []
+      }
+    },
+    {
+      "version": "14.1.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [
+          "Updated label parser to handle empty values in an object key"
+        ],
+        "features": [
+          "Added support for native Next.js OTEL instrumentation via the Hybrid Agent"
+        ]
+      }
+    },
+    {
+      "version": "14.0.0",
+      "changes": {
+        "security": [],
+        "bugfixes": [],
+        "features": [
+          "Dropped support for Node.js 20",
+          "Updated minimum supported version of `@nestjs/cli` and `@nestjs/core` to `10.0.0`",
+          "Updated minimum supported version of `next` to 14",
+          "Updated minimum supported version of `bluebird` to `3.0.0`",
+          "Updated minimum supported version of `mysql2` to `3.0.0`",
+          "Updated minimum supported version for `cassandra-driver` to `4.0.0`",
+          "Removed instrumentation for `koa-route`",
+          "Removed `shim.prefixRouteParameters` as the logic was previously moved to when a transaction ends",
+          "Dropped support for `fastify` 3.x",
+          "Removed creating `MySQL Pool#query` segments",
+          "Removed instrumentation for `koa-router`",
+          "Removed Cross Application Tracing(CAT) functionality",
+          "Removed support for License, Application, and Security Policies(LASP)",
+          "Removed `shim.argsToArray`",
+          "Updated `config.distributed_tracing.exclude_newrelic_header` to be set to `true` by default",
+          "Migrated `@apollo/sever` instrumentation from a plugin(`@newrelic/apollo-server-plugin`) to traditional instrumentation"
+        ]
+      }
+    },
+    {
       "version": "13.20.0",
       "changes": {
         "security": [],

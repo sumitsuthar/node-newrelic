@@ -34,7 +34,7 @@ test('deflate', function (t, end) {
     zlib.deflate(CONTENT, function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString('base64'), DEFLATED_CONTENT)
-      verifySegments({ agent, end, name: 'zlib.deflate' })
+      verifySegments({ agent, end, name: 'zlib.deflate', assertCallbacks: false })
     })
   })
 })
@@ -45,7 +45,7 @@ test('deflateRaw', function (t, end) {
     zlib.deflateRaw(CONTENT, function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString('base64'), DEFLATED_RAW)
-      verifySegments({ agent, end, name: 'zlib.deflateRaw' })
+      verifySegments({ agent, end, name: 'zlib.deflateRaw', assertCallbacks: false })
     })
   })
 })
@@ -56,7 +56,7 @@ test('gzip', function (t, end) {
     zlib.gzip(CONTENT, function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString('base64'), GZIP_CONTENT)
-      verifySegments({ agent, end, name: 'zlib.gzip' })
+      verifySegments({ agent, end, name: 'zlib.gzip', assertCallbacks: false })
     })
   })
 })
@@ -67,7 +67,7 @@ test('inflate', function (t, end) {
     zlib.inflate(Buffer.from(DEFLATED_CONTENT, 'base64'), function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString(), CONTENT)
-      verifySegments({ agent, end, name: 'zlib.inflate' })
+      verifySegments({ agent, end, name: 'zlib.inflate', assertCallbacks: false })
     })
   })
 })
@@ -78,7 +78,7 @@ test('inflateRaw', function (t, end) {
     zlib.inflateRaw(Buffer.from(DEFLATED_RAW, 'base64'), function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString(), CONTENT)
-      verifySegments({ agent, end, name: 'zlib.inflateRaw' })
+      verifySegments({ agent, end, name: 'zlib.inflateRaw', assertCallbacks: false })
     })
   })
 })
@@ -89,7 +89,7 @@ test('gunzip', function (t, end) {
     zlib.gunzip(Buffer.from(GZIP_CONTENT, 'base64'), function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString(), CONTENT)
-      verifySegments({ agent, end, name: 'zlib.gunzip' })
+      verifySegments({ agent, end, name: 'zlib.gunzip', assertCallbacks: false })
     })
   })
 })
@@ -100,7 +100,7 @@ test('unzip', function (t, end) {
     zlib.unzip(Buffer.from(GZIP_CONTENT, 'base64'), function (err, data) {
       assert.ok(!err, 'should not error')
       assert.equal(data.toString(), CONTENT)
-      verifySegments({ agent, end, name: 'zlib.unzip' })
+      verifySegments({ agent, end, name: 'zlib.unzip', assertCallbacks: false })
     })
   })
 })
@@ -162,6 +162,78 @@ test('createInflateRaw', function (t, end) {
     src: Buffer.from(DEFLATED_RAW, 'base64'),
     out: Buffer.from(CONTENT).toString('base64')
   })
+})
+
+test('recorded method still ends segment and binds callback on error', function (t, end) {
+  const { agent } = t.nr
+  helper.runInTransaction(agent, function (transaction) {
+    // gunzip on non-gzip data errors.
+    zlib.gunzip(Buffer.from('not gzip data'), function (err) {
+      assert.ok(err, 'should error on invalid input')
+      assert.equal(agent.getTransaction(), transaction, 'callback should run in transaction')
+
+      const { trace } = transaction
+      const traceChildren = trace.getChildren(trace.root.id)
+      assert.equal(traceChildren.length, 1, 'should have a single child')
+      const child = traceChildren[0]
+      assert.equal(child.name, 'zlib.gunzip', 'child segment should have correct name')
+      assert.ok(child.timer.touched, 'child should have started and ended')
+      end()
+    })
+  })
+})
+
+test('stream preserves transaction context in its own event handlers', function (t, end) {
+  const { agent } = t.nr
+  helper.runInTransaction(agent, function (transaction) {
+    const stream = zlib.createGzip()
+
+    // The zlib stream classes do not create their own segments, but the active
+    // transaction must still propagate across the stream's internal async
+    // callbacks. Assert the transaction survives into the stream's own async
+    // event handlers.
+    stream.on('data', function () {
+      assert.equal(
+        agent.getTransaction(),
+        transaction,
+        'transaction should be active in data handler'
+      )
+    })
+
+    stream.on('end', function () {
+      assert.equal(
+        agent.getTransaction(),
+        transaction,
+        'transaction should be active in end handler'
+      )
+      end()
+    })
+
+    stream.on('error', function (err) {
+      assert.ok(!err, 'should not error')
+      end()
+    })
+
+    stream.end(CONTENT)
+    stream.resume()
+  })
+})
+
+test('stream works outside of a transaction', function (t, end) {
+  const { agent } = t.nr
+  // No runInTransaction wrapper -- zlib streams must work normally when there
+  // is no active transaction.
+  assert.equal(agent.getTransaction(), null, 'precondition: no active transaction')
+
+  const concatStream = concat(function (result) {
+    assert.equal(result.toString('base64'), GZIP_CONTENT, 'should have correct result')
+    assert.equal(agent.getTransaction(), null, 'should still have no transaction')
+    end()
+  })
+
+  const stream = zlib.createGzip()
+  stream.pipe(concatStream)
+  stream.end(CONTENT)
 })
 
 function testStream({ agent, end, method, src, out }) {

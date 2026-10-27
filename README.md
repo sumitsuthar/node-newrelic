@@ -37,7 +37,7 @@ To use New Relic's Node.js agent entails these three steps, which are described 
     /**
      * New Relic agent configuration.
      *
-     * See lib/config/default.js in the agent distribution for a more complete
+     * See lib/config/schemas/ in the agent distribution for a more complete
      * description of configuration variables and their potential values.
      */
     exports.config = {
@@ -45,6 +45,13 @@ To use New Relic's Node.js agent entails these three steps, which are described 
       license_key: 'your new relic license key',
       /* ... rest of configuration .. */
     }
+    ```
+   
+    You can validate your configuration file is valid by using the included
+    configuration validator:
+
+    ```sh
+   $ npx newrelic validate-config --config-file ./newrelic.js
     ```
 
 4. Finally, run your program with the `newrelic` module loaded first by using node's `-r/--require` flag.
@@ -62,34 +69,9 @@ To use New Relic's Node.js agent entails these three steps, which are described 
     ```
 
 ## Next.js instrumentation
-**Note**: The minimum supported Next.js version is [12.0.9](https://github.com/vercel/next.js/releases/tag/v12.0.9).  If you are using Next.js middleware the minimum supported version is [12.2.0](https://github.com/vercel/next.js/releases/tag/v12.2.0).
+We recommend using the hybrid agent functionality to setup Next.js. Please read our [Next.js instrumentation with hybrid agent](https://docs.newrelic.com/docs/apm/agents/nodejs-agent/extend-your-instrumentation/nextjs-instrumentation) document for more information.  The following example applications show how to load the `newrelic` hybrid agent instrumentation, inject browser agent, and deploying to Vercel: 
 
-The New Relic Node.js agent provides instrumentation for Next.js  The instrumentation provides telemetry for server-side rendering via [`getServerSideProps`](https://nextjs.org/docs/basic-features/data-fetching/get-server-side-props), [middleware](https://nextjs.org/docs/middleware) (limited to Next.js versions [12.2.0](https://github.com/vercel/next.js/releases/tag/v12.2.0) - [13.4.12](https://github.com/vercel/next.js/releases/tag/v13.4.12)), and New Relic transaction naming for both page and server requests. It does not provide any instrumentation for actions occurring during build or in client-side code.  If you want telemetry data on actions occurring on the client (browser), you can [inject the browser agent](./documentation/nextjs/faqs/browser-agent.md).
-
-Here are documents for more in-depth explanations about [transaction naming](./documentation/nextjs/transactions.md), and [segments/spans](./documentation/nextjs/segments-and-spans.md).
-
-### Setup
-Typically you are running a Next.js app with the `next` cli and you must load the agent via `NODE_OPTIONS`:
-
-```sh
-NODE_OPTIONS='-r newrelic' next start
-```
-
-If you are having trouble getting the `newrelic` package to instrument Next.js, take a look at our [FAQs](./documentation/nextjs/faqs/README.md).
-
-### Next.js example projects
-The following example applications show how to load the `newrelic` instrumentation, inject browser agent, and handle errors:
-
- * [Pages Router example](https://github.com/newrelic/newrelic-node-examples/tree/9415503f3bd78fa5d87a7214596d51c946199474/nextjs/nextjs-legacy)
- * [App Router example](https://github.com/newrelic/newrelic-node-examples/tree/9415503f3bd78fa5d87a7214596d51c946199474/nextjs/nextjs-app-router)
-
-### Custom Next.js servers
-
-If you are using next as a [custom server](https://nextjs.org/docs/advanced-features/custom-server), you're probably not running your application with the `next` CLI.  In that scenario we recommend running the Next.js instrumentation as follows.
-
-```sh
-node -r newrelic your-program.js
-```
+ * [App Router example](https://github.com/newrelic/newrelic-node-examples/tree/9fa74c516926014fa33758cbd6e3737334ed4f98/nextjs/nextjs-app-router)
 
 ## ECMAScript Modules
 
@@ -136,7 +118,7 @@ We support the following custom instrumentation API methods in ES module apps:
 * `newrelic.instrumentMessages`
 * `newrelic.instrumentWebframework`
 
-Note that we _do not_ support `newrelic.instrumentLoadedModule`, for the same issue of immutability mentioned above.
+Note that `newrelic.instrumentLoadedModule` is deprecated and scheduled for removal in v15. It was never supported in ES module apps, and in CommonJS it only existed to retrofit instrumentation when the agent was loaded after user modules, which is no longer supported.
 
 If you want to see an example of how to write custom instrumentation in an ES module app, check out our [examples](https://github.com/newrelic/newrelic-node-examples/tree/main/esm-app) repo for a working demo.
 
@@ -147,10 +129,6 @@ For more information on getting started, [check the Node.js docs](https://docs.n
 ### External Modules
 
 There are modules that can be installed and configured to accompany the Node.js agent:
-
- * [`@newrelic/apollo-server-plugin`](https://github.com/newrelic/newrelic-node-apollo-server-plugin): New Relic's official Apollo Server plugin for use with the Node.js agent.
-
-There are modules included within the Node.js agent to add more instrumentation for 3rd party modules:
 
  * [`@newrelic/native-metrics`](https://github.com/newrelic/node-native-metrics): Provides hooks into the native v8 layer of Node.js to provide metrics to the Node.js agent.
 

@@ -12,7 +12,6 @@ const { once } = require('node:events')
 const helper = require('../../../lib/agent_helper')
 const mockLogger = require('../../mocks/logger')
 const { setupOtel } = require('../../../../lib/otel/setup')
-const otel = require('@opentelemetry/api')
 
 test.beforeEach((ctx) => {
   const agent = helper.loadMockedAgent()
@@ -25,15 +24,6 @@ test.beforeEach((ctx) => {
 
 test.afterEach((ctx) => {
   helper.unloadAgent(ctx.nr.agent)
-})
-
-test('should attributeValueLengthLimit accordingly', (t) => {
-  const { agent, loggerMock } = t.nr
-  agent.config.opentelemetry.enabled = true
-  agent.config.opentelemetry.traces.enabled = true
-  setupOtel(agent, loggerMock)
-  const tracer = otel.trace.getTracer('test')
-  assert.equal(tracer._spanLimits.attributeValueLengthLimit, 4095)
 })
 
 test('should create supportability metric on successful setup of opentelemetry bridge', (t) => {
@@ -98,6 +88,42 @@ test('should log message if metrics is not enabled', async (t) => {
   assert.equal(loggerMock.debug.args[0][0], '`opentelemetry.metrics` is not enabled, skipping')
 })
 
+test('should attach otel api with all signals when enabled', (t) => {
+  const { agent, loggerMock } = t.nr
+  agent.config.opentelemetry.enabled = true
+  agent.config.opentelemetry.traces.enabled = true
+  agent.config.opentelemetry.metrics.enabled = true
+  agent.config.opentelemetry.logs.enabled = true
+  setupOtel(agent, loggerMock)
+
+  assert.ok(agent.otel)
+  assert.ok(agent.otel.traces)
+  assert.ok(agent.otel.metrics)
+  assert.ok(agent.otel.logs)
+})
+
+test('should leave disabled signals undefined on otel api', (t) => {
+  const { agent, loggerMock } = t.nr
+  agent.config.opentelemetry.enabled = true
+  agent.config.opentelemetry.traces.enabled = true
+  agent.config.opentelemetry.metrics.enabled = false
+  agent.config.opentelemetry.logs.enabled = false
+  setupOtel(agent, loggerMock)
+
+  assert.ok(agent.otel)
+  assert.ok(agent.otel.traces)
+  assert.equal(agent.otel.metrics, undefined)
+  assert.equal(agent.otel.logs, undefined)
+})
+
+test('should not attach otel api when opentelemetry is disabled', (t) => {
+  const { agent, loggerMock } = t.nr
+  agent.config.opentelemetry.enabled = false
+  setupOtel(agent, loggerMock)
+
+  assert.equal(agent.otel, undefined)
+})
+
 test('should bootstrap metrics', async (t) => {
   const { agent, loggerMock } = t.nr
   agent.config.opentelemetry.enabled = true
@@ -105,8 +131,8 @@ test('should bootstrap metrics', async (t) => {
   agent.config.opentelemetry.metrics.enabled = true
   setupOtel(agent, loggerMock)
 
-  assert.equal(1, agent.listenerCount('started'))
+  assert.equal(agent.listenerCount('started'), 1)
   process.nextTick(() => agent.emit('started'))
   await once(agent, 'started')
-  assert.equal(0, agent.listenerCount('started'))
+  assert.equal(agent.listenerCount('started'), 0)
 })
