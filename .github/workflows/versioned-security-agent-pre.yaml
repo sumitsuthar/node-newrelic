@@ -47,6 +47,8 @@ jobs:
       # ponytail: npm reports ENOGIT though git exists; point npm at it explicitly and log why if it still fails
       env:
         npm_config_git: /usr/bin/git
+        # newer npm (>=11.x) refuses git deps by default (EALLOWGIT)
+        npm_config_allow_git: all
         VERSION: ${{ inputs.version }}
       run: |
         which git; git --version; npm -v; npm config get git; echo "$PATH"
