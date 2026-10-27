@@ -44,7 +44,13 @@ jobs:
       if: ${{ inputs.version }}
       # run: npm install @newrelic/security-agent@${{ inputs.version }}
       # run: npm install github:newrelic/csec-node-agent#main
-      run: npm install github:newrelic/csec-node-agent#${{ inputs.version }}
+      # ponytail: npm reports ENOGIT though git exists; point npm at it explicitly and log why if it still fails
+      env:
+        npm_config_git: /usr/bin/git
+        VERSION: ${{ inputs.version }}
+      run: |
+        which git; git --version; npm -v; npm config get git; echo "$PATH"
+        npm install "github:newrelic/csec-node-agent#$VERSION"
     - name: Run Docker Services
       run: npm run services
     - name: Versioned Tests w/ Security Agent
